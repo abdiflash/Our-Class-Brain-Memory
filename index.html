@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain Memory Lab PRO</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Segoe UI;
+  background:linear-gradient(135deg,#0f0f14,#1c1c2b);
+  color:#fff;
+  text-align:center;
+}
+
+h1{margin:20px;}
+
+button{
+  padding:10px 16px;
+  margin:5px;
+  border:none;
+  border-radius:10px;
+  background:#00c853;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.modeBtn{background:#333;}
+.activeMode{background:#00c853;}
+
+#grid{
+  width:320px;
+  margin:20px auto;
+  display:grid;
+  gap:8px;
+}
+
+.cell{
+  background:#222;
+  border-radius:10px;
+  height:clamp(45px,10vw,80px);
+}
+
+.info{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.panel{
+  max-width:360px;
+  margin:20px auto;
+  background:rgba(255,255,255,0.05);
+  padding:15px;
+  border-radius:12px;
+}
+
+.hidden{display:none;}
+</style>
+</head>
+
+<body>
+
+<h1>🧠 Our Class Brain Memory</h1>
+
+<input id="name" placeholder="Nama">
+<input id="class" placeholder="Kelas">
+
+<div>
+<button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">🎓 Ujian</button>
+<button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 Challenge</button>
+<button onclick="toggleBoard()">📊 Dashboard</button>
+</div>
+
+<div class="info">
+<div>Level: <span id="level">1</span></div>
+<div>Score: <span id="score">0</span></div>
+<div id="extra"></div>
+</div>
+
+<div id="grid"></div>
+
+<button onclick="startGame()">Start</button>
+
+<div id="msg">Ready</div>
+
+<div id="boardPanel" class="panel hidden">
+  <canvas id="chart" width="220" height="220"></canvas>
+  <div id="leaderboard" style="margin-top: 15px;"></div>
+  
+  <button onclick="resetData()" style="background:#ff5252; margin-top:20px; width:90%;">
+    🗑️ Hapus Semua Data (Reset Sesi)
+  </button>
+</div>
+
+<script>
+
+/* ================= SUPABASE ================= */
+const SUPABASE_URL = "https://huppyicherwdhgxrcyav.supabase.co";
+const SUPABASE_KEY = "sb_publishable_OJPFFYPGJrDUkjD-gVMOOw_GET4MdOW";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* MODE */
+let mode="exam";
+let level=1,score=0;
+let sequence=[],playerIndex=0,clickable=false;
+let question=1,totalQuestion=10;
+let timeLeft=60,timer=null;
+let challengeCount=0;
+
+const colors=["#00e676","#2979ff","#ffeb3b","#7c4dff","#00bcd4","#ff9800"];
+let currentColor;
+
+const grid=document.getElementById("grid");
+
+function setMode(m){
+  mode=m;
+  document.getElementById("examBtn").classList.toggle("activeMode",m==="exam");
+  document.getElementById("challengeBtn").classList.toggle("activeMode",m==="challenge");
+}
+
+function buildGrid(size){
+  grid.innerHTML="";
+  grid.style.gridTemplateColumns=`repeat(${size},1fr)`;
+  for(let i=0;i<size*size;i++){
+    let c=document.createElement("div");
+    c.className="cell";
+    c.onclick=()=>handleClick(i);
+    grid.appendChild(c);
+  }
+}
+
+function getGridSize(){
+  if(mode==="exam") return 3;
+  if(challengeCount<5) return 3;
+  if(challengeCount<10) return 4;
+  if(challengeCount<20) return 5;
+  return 6;
+}
+
+function startGame(){
+  clearInterval(timer);
+  level=1;score=0;question=1;challengeCount=0;
+  clickable=false;
+  if(mode==="challenge"){
+    timeLeft=60;
+    startTimer();
+  }
+  nextLevel();
+}
+
+function startTimer(){
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    timeLeft--;
+    document.getElementById("extra").innerText="⏱ "+timeLeft+"s";
+    if(timeLeft<=0){
+      clearInterval(timer);
+      endGame();
+    }
+  },1000);
+}
+
+function getDiff(){
+  if(mode==="challenge"){
+    return {
+      len:Math.min(3+Math.floor(challengeCount/2),20),
+      speed:Math.max(550-challengeCount*10,180)
+    };
+  }else{
+    return {
+      len:Math.min(3+level,15),
+      speed:Math.max(600-level*25,250)
+    };
+  }
+}
+
+function nextLevel(){
+  if(mode==="exam" && question>totalQuestion){
+    endGame(); return;
+  }
+  clickable=false;
+  let size=getGridSize();
+  buildGrid(size);
+  sequence=[];playerIndex=0;
+  currentColor=colors[Math.floor(Math.random()*colors.length)];
+  let diff=getDiff();
+  let totalCell=grid.children.length;
+  for(let i=0;i<diff.len;i++){
+    sequence.push(Math.floor(Math.random()*totalCell));
+  }
+  document.getElementById("msg").innerText = mode==="exam"?"Soal "+question:"🔥 Cepat!";
+  showSeq(diff.speed);
+}
+
+function showSeq(speed){
+  let i=0;
+  const cells=document.querySelectorAll(".cell");
+  let int=setInterval(()=>{
+    if(i>0) cells[sequence[i-1]].style.background="#222";
+    if(i>=sequence.length){
+      clearInterval(int);
+      clickable=true;
+      return;
+    }
+    cells[sequence[i]].style.background=currentColor;
+    setTimeout(()=>cells[sequence[i]].style.background="#222",300);
+    i++;
+  },speed);
+}
+
+function handleClick(id){
+  if(!clickable) return;
+  clickable=false;
+  const cells=document.querySelectorAll(".cell");
+  if(id===sequence[playerIndex]){
+    score+=10;
+    cells[id].style.background=currentColor;
+    setTimeout(()=>cells[id].style.background="#222",200);
+    playerIndex++;
+    if(playerIndex===sequence.length){
+      level++;
+      if(mode==="exam") question++;
+      else challengeCount++;
+      setTimeout(nextLevel,400);
+    }else{
+      clickable=true;
+    }
+  }else{
+    score-=5;
+    cells[id].style.background="#ff5252";
+    setTimeout(()=>{
+      if(mode==="exam") question++;
+      else challengeCount++;
+      nextLevel();
+    },600);
+  }
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById("score").innerText=score;
+  document.getElementById("level").innerText=level;
+  if(mode==="exam"){
+    document.getElementById("extra").innerText = "Soal "+question+"/"+totalQuestion;
+  }else{
+    document.getElementById("extra").innerText = "⏱ "+timeLeft+"s | Soal: "+challengeCount;
+  }
+}
+
+function endGame(){
+  clickable=false;
+  clearInterval(timer);
+  saveData();
+  document.getElementById("msg").innerText = mode==="challenge" ? `🔥 Selesai! Score: ${score}` : `🎓 Selesai! Score: ${score}`;
+}
+
+async function saveData(){
+  await supabaseClient.from("scores").insert([{
+    name: document.getElementById("name").value || "Anonim",
+    class: document.getElementById("class").value || "-",
+    score: score,
+    soal: mode==="challenge"?challengeCount:question,
+    mode: mode
+  }]);
+}
+
+async function toggleBoard(){
+  let p=document.getElementById("boardPanel");
+  p.classList.toggle("hidden");
+  if(!p.classList.contains("hidden")){
+    renderBoard();
+  }
+}
+
+async function renderBoard(){
+  let { data } = await supabaseClient
+    .from("scores")
+    .select("*")
+    .eq("mode", mode)
+    .order("score", { ascending:false })
+    .limit(20);
+
+  let top5=data.slice(0,5);
+  document.getElementById("leaderboard").innerHTML=
+    "<b>🏆 TOP 5</b>"+
+    top5.map((d,i)=> `<div>${i+1}. ${d.name} - ${d.score}</div>`).join("");
+
+  drawChart(data);
+}
+
+function drawChart(data){
+  let ctx=document.getElementById("chart").getContext("2d");
+  if(chart) chart.destroy();
+  let t=0,s=0,r=0;
+  data.forEach(d=>{
+    if(d.score>=200)t++;
+    else if(d.score>=100)s++;
+    else r++;
+  });
+  chart=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Tinggi','Sedang','Rendah'],
+      datasets:[{
+        data:[t,s,r],
+        backgroundColor:['#00e676','#ffeb3b','#ff5252']
+      }]
+    },
+    options:{ animation:false, plugins:{ legend:{ position:'bottom', labels:{color:'#fff'} } } }
+  });
+}
+
+/* ================= RESET DATA (DENGAN PASSWORD GURU) ================= */
+async function resetData() {
+  const passwordGuru = "guru123"; // Silakan ganti ini sesuai keinginan guru
+  const inputPassword = prompt("Masukkan Password Khusus Guru untuk mereset sesi:");
+
+  if (inputPassword === null) return; 
+
+  if (inputPassword !== passwordGuru) {
+    alert("Password Salah! Hanya guru yang bisa mereset data.");
+    return;
+  }
+
+  const konfirmasi = confirm("Password Benar. Apakah Anda YAKIN ingin menghapus SEMUA data skor di tabel?");
+  
+  if (konfirmasi) {
+    const { error } = await supabaseClient
+      .from('scores')
+      .delete()
+      .neq('id', 0); 
+
+    if (error) {
+      alert("Gagal menghapus data: " + error.message);
+    } else {
+      alert("Sesi Berhasil Di-reset! Data sekarang kosong.");
+      location.reload(); 
+    }
+  }
+}
+
+let chart;
+</script>
+
+</body>
+</html>
