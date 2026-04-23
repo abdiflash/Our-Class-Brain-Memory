@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Class Brain Memory</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  margin:0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:linear-gradient(135deg,#0f0f14,#1c1c2b);
+  color:#fff;
+  text-align:center;
+}
+
+h1{margin:20px; font-size: 24px;}
+
+button{
+  padding:12px 18px;
+  margin:5px;
+  border:none;
+  border-radius:10px;
+  background:#00c853;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+  transition: 0.3s;
+}
+
+button:hover:not(:disabled) { opacity: 0.8; }
+
+#startBtn:disabled {
+  background: #555 !important;
+  color: #888 !important;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.modeBtn{background:#333;}
+.activeMode{background:#00c853;}
+
+input {
+  padding:10px; 
+  border-radius:8px; 
+  border:none; 
+  margin:5px; 
+  width: 80%;
+  max-width: 300px;
+  font-size: 16px;
+  text-align: center;
+}
+
+#grid{
+  width:90%; 
+  max-width:360px;
+  margin:20px auto;
+  display:grid;
+  gap:10px; 
+}
+
+.cell{
+  background:#444; 
+  border-radius:12px;
+  aspect-ratio: 1 / 1; 
+  cursor:pointer;
+  transition: 0.2s;
+}
+
+.info{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  margin-bottom: 10px;
+}
+
+.panel{
+  max-width:380px;
+  margin:20px auto;
+  background:rgba(255,255,255,0.07);
+  padding:20px;
+  border-radius:15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.hidden{display:none;}
+
+/* STYLE UNTUK SEMUA CUSTOM POP-UP */
+.modal-overlay {
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+  background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;
+}
+.modal-box {
+  background:#1e1e2f; padding:25px; border-radius:12px; width:280px; 
+  border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🧠 Brain Memory Battle</h1>
+
+<input id="name" placeholder="Ketik Nama Anda..." oninput="cekInput()">
+<input id="class" placeholder="Ketik Kode Kelas Kesepakatan..." oninput="cekInput()">
+
+<div style="margin-top:10px;">
+  <button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">🎓 Basic</button>
+  <button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 Challenge</button>
+  <button onclick="toggleBoard()" style="background:#2979ff;">📊 Dashboard</button>
+</div>
+
+<div class="info" style="margin-top:15px;">
+  <div>Score: <b id="score" style="color:#ffeb3b;">0</b></div>
+  <div id="extra">Ready</div>
+</div>
+
+<div id="grid"></div>
+
+<button id="startBtn" onclick="startGame()" style="width: 200px; background:#6200ea; font-size:18px;" disabled>MULAI GAME</button>
+
+<div id="msg" style="margin-top:15px; min-height:20px; color:#00e676;"></div>
+
+<div id="boardPanel" class="panel hidden">
+  <h3 style="margin-top:0;">📊 Statistik Score</h3>
+  
+  <p style="font-size:12px; color:#aaa; margin-bottom:5px;">Cari Kode Kelas:</p>
+  <div style="display:flex; justify-content:center; gap:5px; margin-bottom:15px;">
+    <input id="filterClass" placeholder="Ketik kode kelas..." style="width:50%; margin:0; padding:8px;">
+    <button onclick="renderBoard()" style="margin:0; padding:8px 12px; background:#2979ff; border-radius:6px;">Cari</button>
+    <button onclick="resetFilter()" style="margin:0; padding:8px 12px; background:#555; border-radius:6px;">Semua</button>
+  </div>
+
+  <canvas id="chart" width="220" height="220"></canvas>
+  
+  <div id="leaderboard" style="margin-top: 20px; text-align:left; font-size:14px; background:rgba(0,0,0,0.2); padding:10px; border-radius:10px;"></div>
+  
+  <button onclick="tampilkanPopupPass()" style="background:#ff5252; margin-top:25px; width:100%; font-size:12px;">
+    ⚠️ Hapus Semua Data (Admin Only)
+  </button>
+</div>
+
+<div id="custom-alert" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="alert-title" style="margin-top:0; color:#fff;">Info</h3>
+    <p id="alert-msg" style="font-size:15px; color:#aaa; margin-bottom:20px;"></p>
+    <button onclick="tutupAlert()" style="background:#2979ff; width:100%;">Tutup</button>
+  </div>
+</div>
+
+<div id="custom-prompt" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top:0;">Admin Reset</h3>
+    <p id="prompt-msg" style="font-size:13px; color:#aaa;">Masukkan Password Khusus Admin:</p>
+    <input type="password" id="guru-pass-input" style="width:80%; text-align:center; padding:10px; border-radius:6px; border:none; outline:none;">
+    <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+      <button onclick="tutupPopupPass()" style="background:#555; width:45%;">Batal</button>
+      <button onclick="cekPassword()" style="background:#c0392b; width:45%;">Lanjut</button>
+    </div>
+  </div>
+</div>
+
+<div id="custom-confirm" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top:0; color:#ff5252;">Konfirmasi Hapus</h3>
+    <p style="font-size:14px; color:#aaa; margin-bottom:20px;">Hapus SELURUH database sekarang? Tindakan ini tidak bisa dibatalkan.</p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button onclick="batalHapus()" style="background:#555; width:45%;">Batal</button>
+      <button onclick="eksekusiHapus()" style="background:#c0392b; width:45%;">Ya, Hapus!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* SUPABASE CONFIG */
+const SUPABASE_URL = "https://huppyicherwdhgxrcyav.supabase.co";
+const SUPABASE_KEY = "sb_publishable_OJPFFYPGJrDUkjD-gVMOOw_GET4MdOW";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let mode="exam", level=1, score=0, challengeCount=0;
+let sequence=[], playerIndex=0, clickable=false;
+let question=1, totalQuestion=10, timeLeft=60, timer=null, chart;
+const colors=["#00e676","#2979ff","#ffeb3b","#7c4dff","#00bcd4","#ff9800"];
+let currentColor;
+
+const grid=document.getElementById("grid");
+
+function cekInput() {
+  const nama = document.getElementById("name").value.trim();
+  const kelas = document.getElementById("class").value.trim();
+  document.getElementById("startBtn").disabled = (nama === "" || kelas === "");
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById("examBtn").classList.toggle("activeMode",m==="exam");
+  document.getElementById("challengeBtn").classList.toggle("activeMode",m==="challenge");
+}
+
+function buildGrid(size){
+  grid.innerHTML="";
+  grid.style.gridTemplateColumns=`repeat(${size},1fr)`;
+  for(let i=0;i<size*size;i++){
+    let c=document.createElement("div");
+    c.className="cell";
+    c.onclick=()=>handleClick(i);
+    grid.appendChild(c);
+  }
+}
+
+function startGame(){
+  document.getElementById("startBtn").innerText = "RESTART";
+  clearInterval(timer);
+  level=1; score=0; question=1; challengeCount=0;
+  if(mode==="challenge"){ timeLeft=60; startTimer(); }
+  nextLevel();
+}
+
+function startTimer(){
+  timer=setInterval(()=>{
+    timeLeft--;
+    updateUI();
+    if(timeLeft<=0){ clearInterval(timer); endGame(); }
+  },1000);
+}
+
+function nextLevel(){
+  if(mode==="exam" && question>totalQuestion){ endGame(); return; }
+  clickable=false;
+  let size = (mode==="exam") ? 3 : (challengeCount<5?3 : (challengeCount<12?4:5));
+  buildGrid(size);
+  sequence=[]; playerIndex=0;
+  currentColor=colors[Math.floor(Math.random()*colors.length)];
+  let len = (mode==="exam") ? Math.min(2+level,10) : Math.min(3+Math.floor(challengeCount/2),15);
+  let speed = Math.max(600 - (mode==="exam"?level*30 : challengeCount*15), 200);
+  
+  for(let i=0; i<len; i++) sequence.push(Math.floor(Math.random()*(size*size)));
+  document.getElementById("msg").innerText = "Perhatikan Pola...";
+  showSeq(speed);
+}
+
+function showSeq(speed){
+  let i=0;
+  const cells=document.querySelectorAll(".cell");
+  let int=setInterval(()=>{
+    if(i>0) cells[sequence[i-1]].style.background="#444";
+    if(i>=sequence.length){ clearInterval(int); clickable=true; document.getElementById("msg").innerText="Ulangi Polanya!"; return; }
+    cells[sequence[i]].style.background=currentColor;
+    setTimeout(()=>cells[sequence[i]].style.background="#444", 350);
+    i++;
+  }, speed);
+}
+
+function handleClick(id){
+  if(!clickable) return;
+  const cells=document.querySelectorAll(".cell");
+  if(id===sequence[playerIndex]){
+    score+=10; cells[id].style.background=currentColor;
+    setTimeout(()=>cells[id].style.background="#444", 200);
+    playerIndex++;
+    if(playerIndex===sequence.length){
+      clickable=false; level++; 
+      if(mode==="exam") question++; else challengeCount++;
+      setTimeout(nextLevel, 500);
+    }
+  } else {
+    score-=5; cells[id].style.background="#ff5252";
+    clickable=false;
+    setTimeout(()=> { if(mode==="exam") question++; else challengeCount++; nextLevel(); }, 600);
+  }
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById("score").innerText=score;
+  document.getElementById("extra").innerText = mode==="exam" ? `Soal ${question}/${totalQuestion}` : `⏱ ${timeLeft}s | 🔥 ${challengeCount}`;
+}
+
+function endGame(){
+  clickable=false; clearInterval(timer);
+  saveData();
+  document.getElementById("msg").innerText = "GAME OVER! Skor disimpan.";
+  
+  // MENGGUNAKAN CUSTOM ALERT PENGGANTI BAWAAN BROWSER
+  munculkanAlert("🏆 Game Selesai!", "Skor Akhir Anda: <br><b style='font-size:24px; color:#ffeb3b;'>" + score + "</b>");
+}
+
+async function saveData(){
+  await supabaseClient.from("scores").insert([{
+    name: document.getElementById("name").value.trim(),
+    class: document.getElementById("class").value.trim(),
+    score: score, mode: mode
+  }]);
+}
+
+function toggleBoard(){
+  document.getElementById("boardPanel").classList.toggle("hidden");
+  if(!document.getElementById("boardPanel").classList.contains("hidden")) renderBoard();
+}
+
+function resetFilter() {
+  document.getElementById("filterClass").value = "";
+  renderBoard();
+}
+
+async function renderBoard(){
+  const filter = document.getElementById("filterClass").value.trim();
+  let query = supabaseClient.from("scores").select("*").eq("mode", mode);
+  
+  if(filter !== "") query = query.ilike("class", filter); 
+  
+  let { data } = await query.order("score", { ascending:false }).limit(20);
+  if(!data) return;
+
+  let top5 = data.slice(0,5);
+  let titleFilter = filter === "" ? "GLOBAL" : filter.toUpperCase();
+  
+  // LOGIKA BARU UNTUK SENSOR PRIVASI KODE KELAS
+  document.getElementById("leaderboard").innerHTML = "<b>🏆 TOP 5 " + titleFilter + "</b><hr>" + 
+    (top5.length > 0 ? top5.map((d,i)=> {
+      let classCensored = d.class.length > 3 
+                          ? d.class.slice(0, -3) + "***" 
+                          : d.class.charAt(0) + "**";
+      return `<div>${i+1}. ${d.name} (${classCensored}) - <b>${d.score}</b></div>`;
+    }).join("") : "<div style='text-align:center; color:#aaa;'>Belum ada data untuk kelas ini.</div>");
+
+  drawChart(data);
+}
+
+function drawChart(data){
+  let ctx=document.getElementById("chart").getContext("2d");
+  if(chart) chart.destroy();
+  let t=0, s=0, r=0;
+  data.forEach(d=>{ if(d.score>=200) t++; else if(d.score>=100) s++; else r++; });
+  chart=new Chart(ctx,{
+    type:'doughnut',
+    data:{ labels:['Tinggi','Sedang','Rendah'], datasets:[{ data:[t,s,r], backgroundColor:['#00e676','#ffeb3b','#ff5252'] }] },
+    options:{ animation:false, plugins:{ legend:{ labels:{color:'#fff'} } } }
+  });
+}
+
+/* =========================================================
+   SISTEM POP-UP CUSTOM (BEBAS DARI "abdiflash.github.io says") 
+   ========================================================= */
+
+// 1. Fungsi Alert Custom
+function munculkanAlert(judul, pesan) {
+  document.getElementById("alert-title").innerHTML = judul;
+  document.getElementById("alert-msg").innerHTML = pesan;
+  document.getElementById("custom-alert").style.display = "flex";
+}
+function tutupAlert() {
+  document.getElementById("custom-alert").style.display = "none";
+}
+
+// 2. Fungsi Password Admin
+function tampilkanPopupPass() { 
+  document.getElementById("prompt-msg").innerText = "Masukkan Password Khusus Admin:";
+  document.getElementById("prompt-msg").style.color = "#aaa";
+  document.getElementById("guru-pass-input").value = "";
+  document.getElementById("custom-prompt").style.display = "flex"; 
+}
+function tutupPopupPass() { 
+  document.getElementById("custom-prompt").style.display = "none"; 
+}
+
+function cekPassword() {
+  const pass = document.getElementById('guru-pass-input').value;
+  if(pass === "abdiflash") { 
+    tutupPopupPass(); // Tutup popup password
+    document.getElementById("custom-confirm").style.display = "flex"; // Buka popup konfirmasi
+  } else { 
+    document.getElementById("prompt-msg").innerText = "Password Salah!";
+    document.getElementById("prompt-msg").style.color = "#ff5252";
+  }
+}
+
+// 3. Fungsi Konfirmasi Hapus
+function batalHapus() {
+  document.getElementById("custom-confirm").style.display = "none";
+}
+
+async function eksekusiHapus() {
+  document.getElementById("custom-confirm").style.display = "none"; // Hilangkan popup
+  munculkanAlert("⏳ Memproses...", "Sedang menghapus database..."); // Beri info loading
+  
+  await supabaseClient.from('scores').delete().neq('id', 0);
+  
+  location.reload(); // Refresh halaman jika sukses
+}
+</script>
+</body>
+</html>
