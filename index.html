@@ -296,8 +296,8 @@ async function renderBoard(){
 
   let top5=data.slice(0,5);
   document.getElementById("leaderboard").innerHTML=
-    "<b>🏆 TOP 5</b>"+
-    top5.map((d,i)=> `<div>${i+1}. ${d.name} - ${d.score}</div>`).join("");
+  "<b>🏆 TOP 5</b>"+
+  top5.map((d,i)=> `<div>${i+1}. ${d.name} (${d.class}) - <b>${d.score}</b></div>`).join("");
 
   drawChart(data);
 }
