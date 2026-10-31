@@ -293,7 +293,6 @@ input:focus, select:focus {
         <option value="🔵">🔵 Blue Team</option>
       </select>
 
-      <!-- DROPDOWN PILIHAN UKURAN GRID (TINGKAT KESULITAN) -->
       <select id="gridSizeSelect" style="border-color: #2979ff;">
         <option value="auto">⚡ Grid: Auto-Progressive</option>
         <option value="3">🧩 Grid: 3x3 (Easy)</option>
@@ -328,7 +327,7 @@ input:focus, select:focus {
     <h3>📊 Live Class Leaderboard</h3>
     
     <div style="display:flex; justify-content:center; gap:5px; margin-bottom:15px;">
-      <input id="filterClass" placeholder="Class code..." style="width:50%; margin:0; padding:10px; text-transform: uppercase;">
+      <input id="filterClass" placeholder="Class code..." style="width:50%; margin:0; padding:10px; text-transform: uppercase;" oninput="syncHostChannel()">
       <button class="btn-blue" onclick="renderBoard()" style="margin:0; padding:10px 15px;">Search</button>
       <button class="btn-green" onclick="resetFilter()" style="margin:0; padding:10px 15px;">All</button>
     </div>
@@ -472,16 +471,25 @@ function connectRealtimeChannel(classCode) {
   if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
   currentJoinedClass = classCode;
 
-  realtimeChannel = supabaseClient.channel('class-' + classCode);
+  realtimeChannel = supabaseClient.channel('class-' + classCode, {
+    config: { broadcast: { self: true } }
+  });
+  
   realtimeChannel
     .on('broadcast', { event: 'start_battle' }, payload => {
-      // Mengambil ukuran grid dari pesan broadcast guru (jika ada)
       if(payload.payload && payload.payload.gridSize) {
         document.getElementById("gridSizeSelect").value = payload.payload.gridSize;
       }
       startSynchronousCountdown();
     })
     .subscribe();
+}
+
+function syncHostChannel() {
+  const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
+  if (classCode !== "") {
+    connectRealtimeChannel(classCode);
+  }
 }
 
 function handleStartButtonClick() {
@@ -491,7 +499,7 @@ function handleStartButtonClick() {
   }
 }
 
-function triggerHostStartMatch() {
+async function triggerHostStartMatch() {
   const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
   if (classCode === "") {
     munculkanAlert("⚠️ Attention", "Please enter a **Class Code** in the search bar above before starting the match.");
@@ -499,19 +507,18 @@ function triggerHostStartMatch() {
   }
 
   const selectedGrid = document.getElementById("gridSizeSelect").value;
+  connectRealtimeChannel(classCode);
 
-  const channel = supabaseClient.channel('class-' + classCode);
-  channel.subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
-      channel.send({
+  // Berikan jeda kecil untuk memastikan koneksi channel siap
+  setTimeout(() => {
+    if (realtimeChannel) {
+      realtimeChannel.send({
         type: 'broadcast',
         event: 'start_battle',
         payload: { message: 'start', gridSize: selectedGrid }
       });
-      
-      startSynchronousCountdown();
     }
-  });
+  }, 300);
 }
 
 function startSynchronousCountdown() {
@@ -590,7 +597,6 @@ function nextLevel(){
   if(mode === "exam" && timeLeft<=0) return;
   clickable=false;
   
-  // PENENTUAN UKURAN GRID DARI DROPDOWN
   const selectedSize = document.getElementById("gridSizeSelect").value;
   let size;
   
@@ -660,7 +666,6 @@ function handleClick(id){
     isPaused = true;
     
     if (mode === "challenge") {
-      // Pada mode Endless Challenge, kesalahan mengakhiri permainan
       document.getElementById("msg").innerHTML = "❌ <b>GAME OVER!</b>";
       setTimeout(() => { endGame(); }, 1200);
       return;
