@@ -502,6 +502,7 @@ fullscreenBtn.addEventListener('click', () => {
   }
 });
 
+/* CEK INPUT SISWA */
 function cekInput() {
   const nama = document.getElementById("name").value.trim();
   const kelas = document.getElementById("class").value.trim().toUpperCase();
@@ -509,29 +510,49 @@ function cekInput() {
   const startBtn = document.getElementById("startBtn");
   const createClassBtn = document.getElementById("createClassBtn");
   const scoreboardBtn = document.getElementById("scoreboardBtn");
-
-  if (nama === "" || kelas === "") {
-    startBtn.disabled = true;
-    startBtn.innerText = "START GAME";
-    createClassBtn.disabled = false;
-    scoreboardBtn.disabled = false;
-    return;
-  }
-
-  // ALUR SISWA: KETIKA INPUT DATA, NONAKTIFKAN TOMBOL GURU & SCOREBOARD
-  createClassBtn.disabled = true;
+  const examBtn = document.getElementById("examBtn");
+  const challengeBtn = document.getElementById("challengeBtn");
 
   if (team !== "") {
-    scoreboardBtn.disabled = true; // Siswa tidak perlu buka scoreboard
-    startBtn.disabled = true;
-    startBtn.innerText = "⏳ WAITING FOR TEACHER...";
-    startBtn.style.backgroundColor = "#ff9800";
-    connectRealtimeChannel(kelas, nama, team);
+    createClassBtn.disabled = true;
+    createClassBtn.style.display = "none";
+    
+    scoreboardBtn.disabled = true;
+    scoreboardBtn.style.display = "none";
+
+    examBtn.disabled = true;
+    challengeBtn.disabled = true;
+
+    if (nama !== "" && kelas !== "") {
+      startBtn.disabled = true;
+      startBtn.innerText = "⏳ WAITING FOR TEACHER...";
+      startBtn.style.backgroundColor = "#ff9800";
+      connectRealtimeChannel(kelas, nama, team);
+    } else {
+      startBtn.disabled = true;
+      startBtn.innerText = "START GAME";
+      startBtn.style.backgroundColor = "#7c4dff";
+    }
   } else {
-    scoreboardBtn.disabled = false;
-    startBtn.disabled = false;
-    startBtn.innerText = "START GAME";
-    startBtn.style.backgroundColor = "#7c4dff";
+    if (!isTeacherHost) {
+      createClassBtn.disabled = false;
+      createClassBtn.style.display = "block";
+
+      scoreboardBtn.disabled = false;
+      scoreboardBtn.style.display = "inline-block";
+    }
+
+    examBtn.disabled = false;
+    challengeBtn.disabled = false;
+
+    if (nama !== "" && kelas !== "") {
+      startBtn.disabled = false;
+      startBtn.innerText = "START GAME";
+      startBtn.style.backgroundColor = "#7c4dff";
+    } else {
+      startBtn.disabled = true;
+      startBtn.innerText = "START GAME";
+    }
   }
 }
 
@@ -938,9 +959,18 @@ async function prosesBuatKelas() {
       munculkanAlert("❌ Failed!", "Database connection error: " + error.message);
   } else {
       tutupAlert();
-      // KUNCI LAYAR GURU DAN TAMPILKAN LIVEBOARD
+      // KUNCI DAN SEMBUNYIKAN TOTAL TOMBOL CREATE CLASS CODE & SCOREBOARD
       isTeacherHost = true;
-      document.getElementById("top-menu").style.display = "none"; // Sembunyikan form siswa di layar proyektor
+      const createClassBtn = document.getElementById("createClassBtn");
+      const scoreboardBtn = document.getElementById("scoreboardBtn");
+      
+      createClassBtn.disabled = true;
+      createClassBtn.style.display = "none";
+      
+      scoreboardBtn.disabled = true;
+      scoreboardBtn.style.display = "none";
+
+      document.getElementById("top-menu").style.display = "none"; 
       document.getElementById("boardPanel").classList.remove("hidden");
       document.getElementById("filterClass").value = code;
       syncHostChannel();
