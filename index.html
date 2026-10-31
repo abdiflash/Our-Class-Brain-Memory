@@ -223,7 +223,7 @@ input:focus, select:focus {
   box-sizing: border-box;
 }
 
-/* FULLSCREEN BUTTON */
+/* SINGLE FULLSCREEN BUTTON (POJOK KANAN ATAS) */
 #fullscreen-btn {
   position: absolute;
   top: 15px;
@@ -261,6 +261,7 @@ input:focus, select:focus {
 </head>
 
 <body>
+<!-- SATU-SATUNYA TOMBOL FULL SCREEN -->
 <button id="fullscreen-btn">🔍 Full Screen</button>
 
 <!-- COUNTDOWN OVERLAY UNTUK MODE SERENTAK -->
@@ -287,10 +288,11 @@ input:focus, select:focus {
       <input id="class" placeholder="Enter Class Code..." oninput="cekInput()" style="text-transform: uppercase;">
       <input id="name" placeholder="Enter Your Name..." oninput="cekInput()">
       
+      <!-- DROPDOWN PILIHAN TIM SINGKAT DAN JELAS -->
       <select id="teamSelect" onchange="cekInput()">
-        <option value="">👤 Play Individual (Free / Asynchronous)</option>
-        <option value="🔴">🔴 Red Team (Synchronous Match)</option>
-        <option value="🔵">🔵 Blue Team (Synchronous Match)</option>
+        <option value="">👤 Play Individual (Free)</option>
+        <option value="🔴">🔴 Red Team</option>
+        <option value="🔵">🔵 Blue Team</option>
       </select>
     </div>
 
@@ -446,16 +448,12 @@ function cekInput() {
     return;
   }
 
-  // JIKA SISWA BERGABUNG KE TIM (MODE SERENTAK / KAHOOT STYLE)
   if (team !== "") {
     startBtn.disabled = true;
     startBtn.innerText = "⏳ WAITING FOR TEACHER...";
     startBtn.style.backgroundColor = "#ff9800";
-    
-    // Hubungkan perangkat siswa ke channel Supabase kelas tersebut
     connectRealtimeChannel(kelas);
   } else {
-    // JIKA SISWA MAIN INDIVIDU (MODE ASYNCHRONOUS / BEBAS)
     startBtn.disabled = false;
     startBtn.innerText = "START GAME";
     startBtn.style.backgroundColor = "#7c4dff";
@@ -471,7 +469,6 @@ function connectRealtimeChannel(classCode) {
   realtimeChannel = supabaseClient.channel('class-' + classCode);
   realtimeChannel
     .on('broadcast', { event: 'start_battle' }, payload => {
-      // Ketika sinyal START diterima dari Guru, jalankan game serentak!
       startSynchronousCountdown();
     })
     .subscribe();
@@ -480,7 +477,6 @@ function connectRealtimeChannel(classCode) {
 function handleStartButtonClick() {
   const team = document.getElementById("teamSelect").value;
   if (team === "") {
-    // Mode Individu: Langsung mulai mandiri
     startGame();
   }
 }
@@ -492,7 +488,6 @@ function triggerHostStartMatch() {
     return;
   }
 
-  // Kirim sinyal broadcast ke semua HP siswa yang terhubung di kelas ini
   const channel = supabaseClient.channel('class-' + classCode);
   channel.subscribe((status) => {
     if (status === 'SUBSCRIBED') {
@@ -502,7 +497,6 @@ function triggerHostStartMatch() {
         payload: { message: 'start' }
       });
       
-      // Layar Guru juga ikut masuk ke countdown serentak
       startSynchronousCountdown();
     }
   });
@@ -525,7 +519,7 @@ function startSynchronousCountdown() {
     } else {
       clearInterval(intv);
       overlay.style.display = "none";
-      startGame(); // Mulai ronde permainan secara persis serentak!
+      startGame();
     }
   }, 1000);
 }
@@ -664,7 +658,6 @@ function endGame(){
   document.getElementById("game-info").classList.add("hidden");
   document.getElementById("grid").classList.add("hidden");
   
-  // Reset kondisi input
   cekInput();
   
   document.getElementById("msg").innerHTML = "🏁 TIME'S UP!";
@@ -710,7 +703,6 @@ async function renderBoard(){
   let { data } = await query.order("score", { ascending:false }).limit(50);
   if(!data) return;
 
-  // HITUNG AKUMULASI SKOR TIM MERAH VS TIM BIRU
   let redTotal = 0, blueTotal = 0;
   data.forEach(d => {
     if(d.name.includes("🔴")) redTotal += d.score;
@@ -727,7 +719,6 @@ async function renderBoard(){
   document.getElementById("redBar").style.width = redPct + "%";
   document.getElementById("blueBar").style.width = bluePct + "%";
 
-  // RENDER TOP 5
   let top5 = data.slice(0,5);
   let titleFilter = filter === "" ? "GLOBAL" : filter;
   
