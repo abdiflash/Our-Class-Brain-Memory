@@ -68,6 +68,15 @@ input, select {
   box-sizing: border-box;
 }
 
+/* Penyesuaian grid agar lebih pas di tengah saat menu disembunyikan */
+#grid-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+}
+
 #grid {
   width: 90%; 
   max-width: 360px;
@@ -120,41 +129,48 @@ input, select {
 <body>
 
 <div class="main-wrapper">
-  <h1>🧠 Brain Memory Battle</h1>
+  
+  <!-- BAGIAN MENU ATAS (AKAN DIHILANGKAN SAAT MAIN) -->
+  <div id="top-menu">
+    <h1>🧠 Brain Memory Battle</h1>
 
-  <button onclick="bukaModalBuatKelas()" style="background:#ff9800; font-size:14px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);">
-    👨‍🏫 GURU: BUAT KODE KELAS BARU
-  </button>
+    <button onclick="bukaModalBuatKelas()" style="background:#ff9800; font-size:14px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);">
+      👨‍🏫 GURU: BUAT KODE KELAS BARU
+    </button>
 
-  <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; max-width:360px; margin: 0 auto 20px auto; border: 1px solid rgba(255,255,255,0.1);">
-    <h3 style="margin-top:0; font-size:16px; color:#00bcd4;">🎮 SISWA: MASUK KELAS</h3>
-    <input id="class" placeholder="Ketik Kode Kelas dari Guru..." oninput="cekInput()" style="text-transform: uppercase;">
-    <input id="name" placeholder="Ketik Nama Kamu..." oninput="cekInput()">
-    
-    <select id="teamSelect" style="background:#fff; color:#333;">
-      <option value="">👤 Main Individu (Bebas)</option>
-      <option value="🔴">🔴 Bergabung ke Tim Merah</option>
-      <option value="🔵">🔵 Bergabung ke Tim Biru</option>
-    </select>
+    <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; max-width:360px; margin: 0 auto 20px auto; border: 1px solid rgba(255,255,255,0.1);">
+      <h3 style="margin-top:0; font-size:16px; color:#00bcd4;">🎮 SISWA: MASUK KELAS</h3>
+      <input id="class" placeholder="Ketik Kode Kelas dari Guru..." oninput="cekInput()" style="text-transform: uppercase;">
+      <input id="name" placeholder="Ketik Nama Kamu..." oninput="cekInput()">
+      
+      <select id="teamSelect" style="background:#fff; color:#333;">
+        <option value="">👤 Main Individu (Bebas)</option>
+        <option value="🔴">🔴 Bergabung ke Tim Merah</option>
+        <option value="🔵">🔵 Bergabung ke Tim Biru</option>
+      </select>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">🎓 Basic</button>
+      <button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 Challenge</button>
+      <button onclick="toggleBoard()" style="background:#2979ff;">📊 Dashboard</button>
+    </div>
+  </div>
+  <!-- AKHIR MENU ATAS -->
+
+  <div id="grid-container">
+    <div class="info" style="margin-top:15px;">
+      <div>Score: <b id="score" style="color:#ffeb3b;">0</b></div>
+      <div id="extra">Ready</div>
+    </div>
+
+    <div id="grid"></div>
+
+    <button id="startBtn" onclick="startGame()" style="width: 200px; background:#6200ea; font-size:18px;" disabled>MULAI GAME</button>
+    <div id="msg" style="margin-top:15px; min-height:25px; color:#00e676; font-size: 18px; font-weight: bold;"></div>
   </div>
 
-  <div style="margin-top:10px;">
-    <button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">🎓 Basic</button>
-    <button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 Challenge</button>
-    <button onclick="toggleBoard()" style="background:#2979ff;">📊 Dashboard</button>
-  </div>
-
-  <div class="info" style="margin-top:15px;">
-    <div>Score: <b id="score" style="color:#ffeb3b;">0</b></div>
-    <div id="extra">Ready</div>
-  </div>
-
-  <div id="grid"></div>
-
-  <button id="startBtn" onclick="startGame()" style="width: 200px; background:#6200ea; font-size:18px;" disabled>MULAI GAME</button>
-
-  <div id="msg" style="margin-top:15px; min-height:25px; color:#00e676; font-size: 18px; font-weight: bold;"></div>
-
+  <!-- DASHBOARD -->
   <div id="boardPanel" class="panel hidden">
     <h3 style="margin-top:0;">📊 Statistik Score</h3>
     
@@ -261,7 +277,11 @@ function buildGrid(size){
 }
 
 function startGame(){
-  document.getElementById("startBtn").innerText = "RESTART";
+  // Menyembunyikan menu atas dan tombol mulai agar layar fokus ke grid
+  document.getElementById("top-menu").style.display = "none";
+  document.getElementById("startBtn").style.display = "none";
+  document.getElementById("boardPanel").classList.add("hidden"); 
+  
   clearInterval(timer);
   level=1; score=0; question=1; challengeCount=0; isPaused=false;
   if(mode==="challenge"){ timeLeft=60; startTimer(); }
@@ -363,6 +383,12 @@ function updateUI(){
 function endGame(){
   clickable=false; clearInterval(timer);
   saveData();
+  
+  // Menampilkan menu atas dan tombol mulai kembali
+  document.getElementById("top-menu").style.display = "block";
+  document.getElementById("startBtn").style.display = "inline-block";
+  document.getElementById("startBtn").innerText = "MAIN LAGI";
+  
   document.getElementById("msg").innerHTML = "🏁 GAME OVER! Skor disimpan.";
   munculkanAlert("🏆 Game Selesai!", "Skor Akhir Anda: <br><b style='font-size:24px; color:#ffeb3b;'>" + score + "</b>");
 }
