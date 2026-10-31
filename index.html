@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Class Brain Memory</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  margin:0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:linear-gradient(135deg,#0f0f14,#1c1c2b);
+  color:#fff;
+  text-align:center;
+}
+
+h1{margin:20px; font-size: 24px;}
+
+button{
+  padding:12px 18px;
+  margin:5px;
+  border:none;
+  border-radius:10px;
+  background:#00c853;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+  transition: 0.3s;
+}
+
+button:hover:not(:disabled) { opacity: 0.8; }
+
+#startBtn:disabled {
+  background: #555 !important;
+  color: #888 !important;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.modeBtn{background:#333;}
+.activeMode{background:#00c853;}
+
+input, select {
+  padding:10px; 
+  border-radius:8px; 
+  border:none; 
+  margin:5px; 
+  width: 80%;
+  max-width: 300px;
+  font-size: 16px;
+  text-align: center;
+}
+
+#grid{
+  width:90%; 
+  max-width:360px;
+  margin:20px auto;
+  display:grid;
+  gap:10px; 
+  min-height: 200px; /* Menjaga tinggi agar tidak loncat saat jeda */
+}
+
+.cell{
+  background:#444; 
+  border-radius:12px;
+  aspect-ratio: 1 / 1; 
+  cursor:pointer;
+  transition: 0.2s;
+}
+
+.info{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  margin-bottom: 10px;
+}
+
+.panel{
+  max-width:380px;
+  margin:20px auto;
+  background:rgba(255,255,255,0.07);
+  padding:20px;
+  border-radius:15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.hidden{display:none;}
+
+/* STYLE UNTUK SEMUA CUSTOM POP-UP */
+.modal-overlay {
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+  background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;
+}
+.modal-box {
+  background:#1e1e2f; padding:25px; border-radius:12px; width:280px; 
+  border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🧠 Brain Memory Battle</h1>
+
+<!-- TOMBOL GURU -->
+<button onclick="bukaModalBuatKelas()" style="background:#ff9800; font-size:14px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);">
+  👨‍🏫 GURU: BUAT KODE KELAS BARU
+</button>
+
+<!-- PANEL LOGIN SISWA -->
+<div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; max-width:360px; margin: 0 auto 20px auto; border: 1px solid rgba(255,255,255,0.1);">
+  <h3 style="margin-top:0; font-size:16px; color:#00bcd4;">🎮 SISWA: MASUK KELAS</h3>
+  <input id="class" placeholder="Ketik Kode Kelas dari Guru..." oninput="cekInput()" style="text-transform: uppercase;">
+  <input id="name" placeholder="Ketik Nama Kamu..." oninput="cekInput()">
+  
+  <select id="teamSelect" style="background:#fff; color:#333;">
+    <option value="">👤 Main Individu (Bebas)</option>
+    <option value="🔴">🔴 Bergabung ke Tim Merah</option>
+    <option value="🔵">🔵 Bergabung ke Tim Biru</option>
+  </select>
+</div>
+
+<div style="margin-top:10px;">
+  <button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">🎓 Basic</button>
+  <button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 Challenge</button>
+  <button onclick="toggleBoard()" style="background:#2979ff;">📊 Dashboard</button>
+</div>
+
+<div class="info" style="margin-top:15px;">
+  <div>Score: <b id="score" style="color:#ffeb3b;">0</b></div>
+  <div id="extra">Ready</div>
+</div>
+
+<div id="grid"></div>
+
+<button id="startBtn" onclick="startGame()" style="width: 200px; background:#6200ea; font-size:18px;" disabled>MULAI GAME</button>
+
+<div id="msg" style="margin-top:15px; min-height:25px; color:#00e676; font-size: 18px; font-weight: bold;"></div>
+
+<div id="boardPanel" class="panel hidden">
+  <h3 style="margin-top:0;">📊 Statistik Score</h3>
+  
+  <p style="font-size:12px; color:#aaa; margin-bottom:5px;">Cari Kode Kelas:</p>
+  <div style="display:flex; justify-content:center; gap:5px; margin-bottom:15px;">
+    <input id="filterClass" placeholder="Ketik kode kelas..." style="width:50%; margin:0; padding:8px; text-transform: uppercase;">
+    <button onclick="renderBoard()" style="margin:0; padding:8px 12px; background:#2979ff; border-radius:6px;">Cari</button>
+    <button onclick="resetFilter()" style="margin:0; padding:8px 12px; background:#555; border-radius:6px;">Semua</button>
+  </div>
+
+  <canvas id="chart" width="220" height="220"></canvas>
+  
+  <div id="leaderboard" style="margin-top: 20px; text-align:left; font-size:14px; background:rgba(0,0,0,0.2); padding:10px; border-radius:10px;"></div>
+  
+  <button onclick="tampilkanPopupPass()" style="background:#ff5252; margin-top:25px; width:100%; font-size:12px;">
+    ⚠️ Hapus Data Kelas Ini (Butuh PIN)
+  </button>
+</div>
+
+<!-- MODAL UMUM -->
+<div id="custom-alert" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="alert-title" style="margin-top:0; color:#fff;">Info</h3>
+    <p id="alert-msg" style="font-size:15px; color:#aaa; margin-bottom:20px;"></p>
+    <button onclick="tutupAlert()" style="background:#2979ff; width:100%;">Tutup</button>
+  </div>
+</div>
+
+<!-- MODAL BUAT KELAS GURU -->
+<div id="modal-buat-kelas" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top:0; color:#ff9800;">👨‍🏫 Buat Kelas Baru</h3>
+    <p style="font-size:13px; color:#aaa;">Sistem akan menghasilkan KODE acak. Silakan buat PIN rahasia untuk mereset skor kelas ini nanti.</p>
+    <input type="text" id="input-pin-baru" placeholder="Ketik PIN (Misal: 1234)" style="width:80%; text-align:center; padding:10px; border-radius:6px; border:none; outline:none; margin-bottom:15px;">
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button onclick="tutupModalBuatKelas()" style="background:#555; width:45%;">Batal</button>
+      <button onclick="prosesBuatKelas()" style="background:#00c853; width:45%;">Buat</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PASSWORD HAPUS DATA -->
+<div id="custom-prompt" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top:0;">Reset Kelas</h3>
+    <p id="prompt-msg" style="font-size:13px; color:#aaa;"></p>
+    <input type="password" id="guru-pass-input" style="width:80%; text-align:center; padding:10px; border-radius:6px; border:none; outline:none; margin-top: 10px;">
+    <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+      <button onclick="tutupPopupPass()" style="background:#555; width:45%;">Batal</button>
+      <button onclick="cekPassword()" style="background:#c0392b; width:45%;">Lanjut</button>
+    </div>
+  </div>
+</div>
+
+<div id="custom-confirm" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top:0; color:#ff5252;">Konfirmasi Hapus</h3>
+    <p style="font-size:14px; color:#aaa; margin-bottom:20px;">Hapus data kelas ini sekarang? Tindakan ini tidak bisa dibatalkan.</p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button onclick="batalHapus()" style="background:#555; width:45%;">Batal</button>
+      <button onclick="eksekusiHapus()" style="background:#c0392b; width:45%;">Ya, Hapus!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* SUPABASE CONFIG */
+const SUPABASE_URL = "https://huppyicherwdhgxrcyav.supabase.co";
+const SUPABASE_KEY = "sb_publishable_OJPFFYPGJrDUkjD-gVMOOw_GET4MdOW";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let mode="exam", level=1, score=0, challengeCount=0;
+let sequence=[], playerIndex=0, clickable=false;
+let question=1, totalQuestion=10, timeLeft=60, timer=null, chart;
+let isPaused = false; // Variabel baru untuk jeda waktu
+const colors=["#00e676","#2979ff","#ffeb3b","#7c4dff","#00bcd4","#ff9800"];
+let currentColor;
+
+const grid=document.getElementById("grid");
+
+function cekInput() {
+  const nama = document.getElementById("name").value.trim();
+  const kelas = document.getElementById("class").value.trim();
+  document.getElementById("startBtn").disabled = (nama === "" || kelas === "");
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById("examBtn").classList.toggle("activeMode",m==="exam");
+  document.getElementById("challengeBtn").classList.toggle("activeMode",m==="challenge");
+}
+
+function buildGrid(size){
+  grid.innerHTML="";
+  grid.style.gridTemplateColumns=`repeat(${size},1fr)`;
+  for(let i=0;i<size*size;i++){
+    let c=document.createElement("div");
+    c.className="cell";
+    c.onclick=()=>handleClick(i);
+    grid.appendChild(c);
+  }
+}
+
+function startGame(){
+  document.getElementById("startBtn").innerText = "RESTART";
+  clearInterval(timer);
+  level=1; score=0; question=1; challengeCount=0; isPaused=false;
+  if(mode==="challenge"){ timeLeft=60; startTimer(); }
+  nextLevel();
+}
+
+function startTimer(){
+  timer=setInterval(()=>{
+    if(!isPaused) { // Timer tidak berjalan saat jeda antar soal
+      timeLeft--;
+      updateUI();
+      if(timeLeft<=0){ clearInterval(timer); endGame(); }
+    }
+  },1000);
+}
+
+function nextLevel(){
+  if(mode==="exam" && question>totalQuestion){ endGame(); return; }
+  clickable=false;
+  let size = (mode==="exam") ? 3 : (challengeCount<5?3 : (challengeCount<12?4:5));
+  buildGrid(size);
+  sequence=[]; playerIndex=0;
+  currentColor=colors[Math.floor(Math.random()*colors.length)];
+  let len = (mode==="exam") ? Math.min(2+level,10) : Math.min(3+Math.floor(challengeCount/2),15);
+  let speed = Math.max(600 - (mode==="exam"?level*30 : challengeCount*15), 200);
+  
+  for(let i=0; i<len; i++) sequence.push(Math.floor(Math.random()*(size*size)));
+  
+  document.getElementById("msg").innerHTML = "👀 Perhatikan Polanya...";
+  document.getElementById("msg").style.color = "#aaa";
+  showSeq(speed);
+}
+
+function showSeq(speed){
+  let i=0;
+  const cells=document.querySelectorAll(".cell");
+  let int=setInterval(()=>{
+    if(i>0) cells[sequence[i-1]].style.background="#444";
+    if(i>=sequence.length){ 
+      clearInterval(int); 
+      clickable=true; 
+      document.getElementById("msg").innerHTML="🧠 Giliranmu! Ulangi Polanya."; 
+      document.getElementById("msg").style.color="#fff";
+      return; 
+    }
+    cells[sequence[i]].style.background=currentColor;
+    setTimeout(()=>cells[sequence[i]].style.background="#444", 350);
+    i++;
+  }, speed);
+}
+
+function handleClick(id){
+  if(!clickable) return;
+  const cells=document.querySelectorAll(".cell");
+  
+  if(id===sequence[playerIndex]){
+    score+=10; cells[id].style.background=currentColor;
+    setTimeout(()=>cells[id].style.background="#444", 200);
+    playerIndex++;
+    
+    if(playerIndex===sequence.length){
+      // --- LOGIKA BENAR & JEDA ---
+      clickable=false; level++; 
+      if(mode==="exam") question++; else challengeCount++;
+      
+      isPaused = true; // Pause timer
+      document.getElementById("msg").innerHTML = "✨ <b>BAGUS!</b> Bersiap soal berikutnya...";
+      document.getElementById("msg").style.color = "#00e676";
+      grid.innerHTML = ""; // Hapus isi grid untuk transisi
+      
+      setTimeout(() => {
+        isPaused = false;
+        nextLevel();
+      }, 1500); // 1.5 detik jeda
+    }
+  } else {
+    // --- LOGIKA SALAH & JEDA ---
+    score-=5; cells[id].style.background="#ff5252";
+    clickable=false;
+    
+    isPaused = true; // Pause timer
+    document.getElementById("msg").innerHTML = "❌ <b>SALAH!</b> Bersiap soal berikutnya...";
+    document.getElementById("msg").style.color = "#ff5252";
+    
+    setTimeout(() => { grid.innerHTML = ""; }, 300); // Tahan merah sebentar lalu hapus
+    
+    setTimeout(()=> { 
+      if(mode==="exam") question++; else challengeCount++; 
+      isPaused = false;
+      nextLevel(); 
+    }, 1500); // 1.5 detik jeda
+  }
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById("score").innerText=score;
+  document.getElementById("extra").innerText = mode==="exam" ? `Soal ${question}/${totalQuestion}` : `⏱ ${timeLeft}s | 🔥 ${challengeCount}`;
+}
+
+function endGame(){
+  clickable=false; clearInterval(timer);
+  saveData();
+  document.getElementById("msg").innerHTML = "🏁 GAME OVER! Skor disimpan.";
+  munculkanAlert("🏆 Game Selesai!", "Skor Akhir Anda: <br><b style='font-size:24px; color:#ffeb3b;'>" + score + "</b>");
+}
+
+async function saveData(){
+  // Menambahkan info Tim Merah/Biru di depan nama pemain jika mereka memilih tim
+  let inputName = document.getElementById("name").value.trim();
+  let team = document.getElementById("teamSelect").value;
+  let finalName = team !== "" ? team + " " + inputName : inputName;
+
+  await supabaseClient.from("scores").insert([{
+    name: finalName,
+    class: document.getElementById("class").value.trim().toUpperCase(),
+    score: score, mode: mode
+  }]);
+}
+
+function toggleBoard(){
+  document.getElementById("boardPanel").classList.toggle("hidden");
+  if(!document.getElementById("boardPanel").classList.contains("hidden")) renderBoard();
+}
+
+function resetFilter() {
+  document.getElementById("filterClass").value = "";
+  renderBoard();
+}
+
+async function renderBoard(){
+  const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+  
+  // Mengambil data, TIDAK TERMASUK baris yang mengandung PIN Rahasia Guru
+  let query = supabaseClient.from("scores").select("*").eq("mode", mode).neq("name", "HOST_PIN");
+  
+  if(filter !== "") query = query.ilike("class", filter); 
+  
+  let { data } = await query.order("score", { ascending:false }).limit(20);
+  if(!data) return;
+
+  let top5 = data.slice(0,5);
+  let titleFilter = filter === "" ? "GLOBAL" : filter;
+  
+  document.getElementById("leaderboard").innerHTML = "<b>🏆 TOP 5 " + titleFilter + "</b><hr>" + 
+    (top5.length > 0 ? top5.map((d,i)=> {
+      let classCensored = d.class.length > 3 
+                          ? d.class.slice(0, -3) + "***" 
+                          : d.class.charAt(0) + "**";
+      return `<div>${i+1}. ${d.name} (${classCensored}) - <b>${d.score}</b></div>`;
+    }).join("") : "<div style='text-align:center; color:#aaa;'>Belum ada data.</div>");
+
+  drawChart(data);
+}
+
+function drawChart(data){
+  let ctx=document.getElementById("chart").getContext("2d");
+  if(chart) chart.destroy();
+  let t=0, s=0, r=0;
+  data.forEach(d=>{ if(d.score>=200) t++; else if(d.score>=100) s++; else r++; });
+  chart=new Chart(ctx,{
+    type:'doughnut',
+    data:{ labels:['Tinggi','Sedang','Rendah'], datasets:[{ data:[t,s,r], backgroundColor:['#00e676','#ffeb3b','#ff5252'] }] },
+    options:{ animation:false, plugins:{ legend:{ labels:{color:'#fff'} } } }
+  });
+}
+
+/* =========================================================
+   SISTEM GURU & POP-UP
+   ========================================================= */
+
+// ALERT
+function munculkanAlert(judul, pesan) {
+  document.getElementById("alert-title").innerHTML = judul;
+  document.getElementById("alert-msg").innerHTML = pesan;
+  document.getElementById("custom-alert").style.display = "flex";
+}
+function tutupAlert() { document.getElementById("custom-alert").style.display = "none"; }
+
+// GURU: BUAT KELAS & PIN
+function bukaModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "flex"; }
+function tutupModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "none"; }
+
+async function prosesBuatKelas() {
+  const pin = document.getElementById("input-pin-baru").value;
+  if(pin.length < 3) { alert("PIN harus minimal 3 karakter!"); return; }
+
+  // Generate 5 digit kode kelas acak
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; 
+  let code = "";
+  for(let i=0; i<5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+  munculkanAlert("⏳ Memproses...", "Sedang membuat ruangan kelas...");
+  tutupModalBuatKelas();
+
+  // Hack: Menyimpan PIN Guru di database menyamar sebagai baris skor
+  const { error } = await supabaseClient.from("scores").insert([{
+      name: "HOST_PIN",
+      class: code,
+      score: 0,
+      mode: pin // PIN disimpan di kolom mode
+  }]);
+
+  if(error) {
+      munculkanAlert("❌ Gagal!", "Koneksi database bermasalah: " + error.message);
+  } else {
+      munculkanAlert("✅ Kelas Berhasil Dibuat!",
+          `Tulis KODE KELAS ini di papan tulis agar siswa bisa masuk:<br><br><b style='font-size:36px; color:#ff9800; letter-spacing: 3px;'>${code}</b><br><br>PIN Rahasia Anda: <b>${pin}</b><br><small>(Ingat PIN ini untuk mereset data nanti)</small>`
+      );
+  }
+}
+
+// GURU: HAPUS KELAS (DENGAN PIN)
+function tampilkanPopupPass() { 
+  const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+  if(filter === "") {
+    munculkanAlert("⚠️ Perhatian", "Harap <b>ketikkan Kode Kelas</b> pada kolom pencarian dashboard terlebih dahulu, sebelum menekan tombol hapus.");
+    return;
+  }
+  document.getElementById("prompt-msg").innerHTML = `Masukkan PIN untuk kelas <b>${filter}</b>:`;
+  document.getElementById("guru-pass-input").value = "";
+  document.getElementById("custom-prompt").style.display = "flex"; 
+}
+
+function tutupPopupPass() { document.getElementById("custom-prompt").style.display = "none"; }
+
+async function cekPassword() {
+  const pin = document.getElementById('guru-pass-input').value;
+  const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+  
+  tutupPopupPass();
+  munculkanAlert("⏳ Mengecek...", "Memverifikasi PIN Kelas...");
+
+  // Mencari baris HOST_PIN untuk kelas tersebut di database
+  let { data, error } = await supabaseClient.from("scores")
+      .select("*").eq("name", "HOST_PIN").eq("class", filter);
+
+  tutupAlert();
+
+  if(data && data.length > 0) {
+      if(data[0].mode === pin) {
+          // PIN Cocok! Buka dialog konfirmasi akhir
+          document.getElementById("custom-confirm").style.display = "flex"; 
+      } else {
+          munculkanAlert("❌ Gagal", "PIN Salah untuk kelas " + filter + "!");
+      }
+  } else {
+      // Jika kode kelas tidak ada fitur HOST_PIN-nya, fallback ke password master abdiflash
+      if(pin === "abdiflash") {
+          document.getElementById("custom-confirm").style.display = "flex"; 
+      } else {
+          munculkanAlert("❌ Gagal", "Kelas tidak ditemukan atau belum disetel PIN-nya. (Gunakan Master Password jika perlu).");
+      }
+  }
+}
+
+function batalHapus() { document.getElementById("custom-confirm").style.display = "none"; }
+
+async function eksekusiHapus() {
+  document.getElementById("custom-confirm").style.display = "none"; 
+  const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+  
+  munculkanAlert("⏳ Memproses...", `Menghapus seluruh data kelas ${filter}...`); 
+  
+  // Hanya hapus baris yang class-nya sama dengan kode yang dicari
+  await supabaseClient.from('scores').delete().eq('class', filter);
+  
+  location.reload(); // Refresh halaman setelah sukses
+}
+</script>
+</body>
+</html>
