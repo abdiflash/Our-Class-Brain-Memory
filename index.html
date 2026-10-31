@@ -239,7 +239,7 @@ input:focus, select:focus {
 }
 #fullscreen-btn:hover { background-color: rgba(255, 255, 255, 0.3); }
 
-/* OVERLAY COUNTDOWN SERENTAK */
+/* OVERLAY COUNTDOWN SERENTAK UNTUK SISWA */
 #countdown-overlay {
   display: none;
   position: fixed;
@@ -263,7 +263,7 @@ input:focus, select:focus {
 <body>
 <button id="fullscreen-btn">🔍 Full Screen</button>
 
-<!-- COUNTDOWN OVERLAY UNTUK MODE SERENTAK -->
+<!-- COUNTDOWN OVERLAY UNTUK SISWA -->
 <div id="countdown-overlay">
   <div style="font-size: 24px; margin-bottom: 10px;">BATTLE STARTING IN...</div>
   <div id="countdown-num">3</div>
@@ -327,7 +327,6 @@ input:focus, select:focus {
     <h3>📊 Live Class Leaderboard</h3>
     
     <div style="display:flex; justify-content:center; gap:5px; margin-bottom:15px;">
-      <!-- PENCARIAN OTOMATIS SAAT KETIK KODE KELAS (ONINPUT) -->
       <input id="filterClass" placeholder="Class code..." style="width:50%; margin:0; padding:10px; text-transform: uppercase;" oninput="syncHostChannel()">
       <button class="btn-blue" onclick="renderBoard()" style="margin:0; padding:10px 15px;">Search</button>
       <button class="btn-green" onclick="resetFilter()" style="margin:0; padding:10px 15px;">All</button>
@@ -420,6 +419,7 @@ let isPaused = false;
 let autoRefreshTimer = null;
 let realtimeChannel = null;
 let currentJoinedClass = "";
+let isTeacherHost = false; // Flag penanda jika perangat berfungsi sebagai Layar Guru
 
 const colors=["#4caf50","#2979ff","#ffca28","#7c4dff","#00bcd4","#ff5252"];
 let currentColor;
@@ -472,32 +472,34 @@ function connectRealtimeChannel(classCode) {
   if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
   currentJoinedClass = classCode;
 
-  realtimeChannel = supabaseClient.channel('class-' + classCode, {
-    config: { broadcast: { self: true } }
-  });
+  realtimeChannel = supabaseClient.channel('class-' + classCode);
   
   realtimeChannel
     .on('broadcast', { event: 'start_battle' }, payload => {
-      if(payload.payload && payload.payload.gridSize) {
-        document.getElementById("gridSizeSelect").value = payload.payload.gridSize;
+      // Jika perangkat ini BUKAN Layar Proyektor Guru, jalankan game serentak di HP siswa!
+      if (!isTeacherHost) {
+        if(payload.payload && payload.payload.gridSize) {
+          document.getElementById("gridSizeSelect").value = payload.payload.gridSize;
+        }
+        startSynchronousCountdown();
       }
-      startSynchronousCountdown();
     })
     .subscribe();
 }
 
-/* FUNGSI OTOMATIS SAAT KETIK KODE KELAS DI DASHBOARD */
 function syncHostChannel() {
   const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
-  renderBoard(); // Otomatis refresh papan skor
+  renderBoard();
   if (classCode !== "") {
-    connectRealtimeChannel(classCode); // Otomatis kunci channel live
+    isTeacherHost = true; // Kunci mode Layar Guru
+    connectRealtimeChannel(classCode);
   }
 }
 
 function handleStartButtonClick() {
   const team = document.getElementById("teamSelect").value;
   if (team === "") {
+    isTeacherHost = false;
     startGame();
   }
 }
@@ -509,16 +511,24 @@ async function triggerHostStartMatch() {
     return;
   }
 
+  isTeacherHost = true; // Memastikan layar proyektor tetap di dasbor
   const selectedGrid = document.getElementById("gridSizeSelect").value;
   connectRealtimeChannel(classCode);
 
   setTimeout(() => {
     if (realtimeChannel) {
+      // Kirim sinyal ke seluruh HP siswa
       realtimeChannel.send({
         type: 'broadcast',
         event: 'start_battle',
         payload: { message: 'start', gridSize: selectedGrid }
       });
+      
+      munculkanAlert("🚀 MATCH STARTED!", "The battle signal has been sent to all student devices! Watch the live bar below.");
+      
+      // Nyalakan pembaruan skor live otomatis setiap 2 detik di layar proyektor guru
+      if(autoRefreshTimer) clearInterval(autoRefreshTimer);
+      autoRefreshTimer = setInterval(renderBoard, 2000);
     }
   }, 300);
 }
@@ -726,8 +736,9 @@ function toggleBoard(){
   board.classList.toggle("hidden");
   
   if(!board.classList.contains("hidden")) {
+    isTeacherHost = true;
     renderBoard();
-    autoRefreshTimer = setInterval(renderBoard, 3000);
+    autoRefreshTimer = setInterval(renderBoard, 2000);
   } else {
     if(autoRefreshTimer) clearInterval(autoRefreshTimer);
   }
