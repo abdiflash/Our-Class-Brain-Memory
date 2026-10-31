@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -320,7 +320,7 @@ input:focus, select:focus {
   </div>
   <h1 id="main-title">Brain Memory Battle</h1>
 
-  <!-- TOP MENU -->
+  <!-- TOP MENU (UNTUK SISWA BEBAS / PEMAIN INDIVIDU) -->
   <div id="top-menu" class="game-card">
     <button class="btn-orange" onclick="bukaModalBuatKelas()" style="width: 100%; margin-bottom:20px;">
       👨‍🏫 TEACHER: CREATE CLASS CODE
@@ -366,7 +366,7 @@ input:focus, select:focus {
     <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></div>
   </div>
 
-  <!-- DASHBOARD / LEADERBOARD WITH LIVE TEAM VS BAR & WAITING LOBBY -->
+  <!-- DASHBOARD / LEADERBOARD WITH LIVE TEAM VS BAR & WAITING LOBBY (LAYAR PROYEKTOR GURU) -->
   <div id="boardPanel" class="game-card hidden">
     <h3>📊 Live Class Leaderboard</h3>
     
@@ -393,7 +393,7 @@ input:focus, select:focus {
         <div id="blueBar" class="blue-bar"></div>
       </div>
 
-      <!-- WAITING LOBBY HASIL JOIN REALTIME -->
+      <!-- WAITING LOBBY HASIL JOIN SISWA REALTIME -->
       <div class="lobby-container">
         <div class="team-column" style="border-color: #ff8a8a;">
           <h4 style="color: #d32f2f;">🔴 Red (<span id="redCount">0</span>)</h4>
@@ -538,7 +538,7 @@ function connectRealtimeChannel(classCode, pName = "", pTeam = "") {
   currentJoinedClass = classCode;
 
   realtimeChannel = supabaseClient.channel('class-' + classCode, {
-    config: { presence: { key: pName || 'host' } }
+    config: { presence: { key: pName || 'teacher_host' } }
   });
   
   realtimeChannel
