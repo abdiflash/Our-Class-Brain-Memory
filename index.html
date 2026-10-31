@@ -223,7 +223,7 @@ input:focus, select:focus {
   box-sizing: border-box;
 }
 
-/* SINGLE FULLSCREEN BUTTON (POJOK KANAN ATAS) */
+/* SINGLE FULLSCREEN BUTTON */
 #fullscreen-btn {
   position: absolute;
   top: 15px;
@@ -261,7 +261,6 @@ input:focus, select:focus {
 </head>
 
 <body>
-<!-- SATU-SATUNYA TOMBOL FULL SCREEN -->
 <button id="fullscreen-btn">🔍 Full Screen</button>
 
 <!-- COUNTDOWN OVERLAY UNTUK MODE SERENTAK -->
@@ -288,11 +287,18 @@ input:focus, select:focus {
       <input id="class" placeholder="Enter Class Code..." oninput="cekInput()" style="text-transform: uppercase;">
       <input id="name" placeholder="Enter Your Name..." oninput="cekInput()">
       
-      <!-- DROPDOWN PILIHAN TIM SINGKAT DAN JELAS -->
       <select id="teamSelect" onchange="cekInput()">
         <option value="">👤 Play Individual (Free)</option>
         <option value="🔴">🔴 Red Team</option>
         <option value="🔵">🔵 Blue Team</option>
+      </select>
+
+      <!-- DROPDOWN PILIHAN UKURAN GRID (TINGKAT KESULITAN) -->
+      <select id="gridSizeSelect" style="border-color: #2979ff;">
+        <option value="auto">⚡ Grid: Auto-Progressive</option>
+        <option value="3">🧩 Grid: 3x3 (Easy)</option>
+        <option value="4">🧩 Grid: 4x4 (Medium)</option>
+        <option value="5">🧩 Grid: 5x5 (Hard)</option>
       </select>
     </div>
 
@@ -469,6 +475,10 @@ function connectRealtimeChannel(classCode) {
   realtimeChannel = supabaseClient.channel('class-' + classCode);
   realtimeChannel
     .on('broadcast', { event: 'start_battle' }, payload => {
+      // Mengambil ukuran grid dari pesan broadcast guru (jika ada)
+      if(payload.payload && payload.payload.gridSize) {
+        document.getElementById("gridSizeSelect").value = payload.payload.gridSize;
+      }
       startSynchronousCountdown();
     })
     .subscribe();
@@ -488,13 +498,15 @@ function triggerHostStartMatch() {
     return;
   }
 
+  const selectedGrid = document.getElementById("gridSizeSelect").value;
+
   const channel = supabaseClient.channel('class-' + classCode);
   channel.subscribe((status) => {
     if (status === 'SUBSCRIBED') {
       channel.send({
         type: 'broadcast',
         event: 'start_battle',
-        payload: { message: 'start' }
+        payload: { message: 'start', gridSize: selectedGrid }
       });
       
       startSynchronousCountdown();
@@ -554,7 +566,13 @@ function startGame(){
   clearInterval(timer);
   
   level=1; score=0; solvedCount=0; isPaused=false; timeLeft=60;
-  startTimer();
+  
+  if(mode === "challenge") {
+    document.getElementById("extra").innerText = `🔥 Level 1`;
+  } else {
+    startTimer();
+  }
+  
   nextLevel();
 }
 
@@ -569,10 +587,19 @@ function startTimer(){
 }
 
 function nextLevel(){
-  if(timeLeft<=0) return;
+  if(mode === "exam" && timeLeft<=0) return;
   clickable=false;
   
-  let size = solvedCount < 3 ? 3 : (solvedCount < 8 ? 4 : 5);
+  // PENENTUAN UKURAN GRID DARI DROPDOWN
+  const selectedSize = document.getElementById("gridSizeSelect").value;
+  let size;
+  
+  if (selectedSize === "auto") {
+    size = solvedCount < 3 ? 3 : (solvedCount < 8 ? 4 : 5);
+  } else {
+    size = parseInt(selectedSize);
+  }
+  
   buildGrid(size);
   
   sequence=[]; playerIndex=0;
@@ -631,21 +658,31 @@ function handleClick(id){
     clickable=false;
     
     isPaused = true;
-    document.getElementById("msg").innerHTML = "❌ <b>WRONG! -5</b>";
     
-    setTimeout(() => { grid.innerHTML = ""; }, 300);
-    
-    setTimeout(()=> { 
-      isPaused = false;
-      nextLevel(); 
-    }, 1000);
+    if (mode === "challenge") {
+      // Pada mode Endless Challenge, kesalahan mengakhiri permainan
+      document.getElementById("msg").innerHTML = "❌ <b>GAME OVER!</b>";
+      setTimeout(() => { endGame(); }, 1200);
+      return;
+    } else {
+      document.getElementById("msg").innerHTML = "❌ <b>WRONG! -5</b>";
+      setTimeout(() => { grid.innerHTML = ""; }, 300);
+      setTimeout(()=> { 
+        isPaused = false;
+        nextLevel(); 
+      }, 1000);
+    }
   }
   updateUI();
 }
 
 function updateUI(){
   document.getElementById("score").innerText=score;
-  document.getElementById("extra").innerText = `⏱ ${timeLeft}s | Solved: ${solvedCount}`;
+  if (mode === "exam") {
+    document.getElementById("extra").innerText = `⏱ ${timeLeft}s | Solved: ${solvedCount}`;
+  } else {
+    document.getElementById("extra").innerText = `🔥 Level: ${solvedCount + 1}`;
+  }
 }
 
 function endGame(){
@@ -660,7 +697,7 @@ function endGame(){
   
   cekInput();
   
-  document.getElementById("msg").innerHTML = "🏁 TIME'S UP!";
+  document.getElementById("msg").innerHTML = "🏁 GAME OVER!";
   
   munculkanAlert("🏆 Game Over!", "Your Final Score: <br><b style='font-size:32px; color:#ff9800;'>" + score + "</b><br><small>Levels Completed: " + solvedCount + "</small>");
 }
