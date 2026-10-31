@@ -11,14 +11,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-/* OVERALL CHEERFUL THEME */
+/* OVERALL CHEERFUL THEME - DEEP PURPLE BACKGROUND */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100vh;
   font-family: 'Fredoka', sans-serif;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  background-color: #2b1294; /* Warna dasar ungu gelap dari referensi */
+  background-image: radial-gradient(circle at top left, #4422b5, #17075c);
   color: #333;
   text-align: center;
   overflow-x: hidden;
@@ -28,20 +29,36 @@ html, body {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  padding: 40px 15px 30px 15px; /* Added top padding for fullscreen button */
+  padding: 40px 15px 30px 15px; 
   box-sizing: border-box;
 }
 
-h1 { margin: 10px 0 20px 0; font-size: 28px; color: #fff; text-shadow: 2px 2px 0px rgba(0,0,0,0.2); }
+h1 { margin: 0 0 20px 0; font-size: 32px; color: #fff; text-shadow: 3px 3px 0px rgba(0,0,0,0.3); }
 h2 { margin-top: 0; color: #2979ff; }
 h3 { margin-top: 0; color: #333; }
+
+/* ANIMASI KARAKTER BINATANG */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+.cute-animals {
+  font-size: 45px;
+  margin-bottom: 10px;
+  animation: float 3s ease-in-out infinite;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  text-shadow: 2px 4px 10px rgba(0,0,0,0.3);
+}
 
 /* MAIN MENU CARD */
 .game-card {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 24px;
   padding: 30px 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   border: 4px solid #fff;
   margin-bottom: 20px;
   position: relative;
@@ -104,7 +121,7 @@ input, select {
 }
 
 input:focus, select:focus {
-  border-color: #6e8efb;
+  border-color: #7c4dff;
   outline: none;
 }
 
@@ -140,12 +157,12 @@ input:focus, select:focus {
   justify-content: center;
   gap: 20px;
   margin-bottom: 10px;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
   padding: 10px 20px;
   border-radius: 20px;
   font-size: 18px;
   font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
 .hidden { display: none !important; }
@@ -153,30 +170,30 @@ input:focus, select:focus {
 /* MODALS */
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-  background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;
+  background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;
   backdrop-filter: blur(5px);
 }
 .modal-box {
   background: #fff; padding: 30px; border-radius: 24px; width: 90%; max-width: 350px; 
-  border: 4px solid #6e8efb; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center;
+  border: 4px solid #7c4dff; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center;
   box-sizing: border-box;
 }
 
-/* FULLSCREEN BUTTON (TOP RIGHT) */
+/* FULLSCREEN BUTTON */
 #fullscreen-btn {
   position: absolute;
   top: 15px;
   right: 15px;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.15);
   color: #fff;
-  border: 2px solid #fff;
+  border: 2px solid rgba(255, 255, 255, 0.5);
   box-shadow: none;
   border-radius: 12px;
   padding: 8px 12px;
   font-size: 14px;
   z-index: 9000;
 }
-#fullscreen-btn:hover { background-color: rgba(255, 255, 255, 0.4); }
+#fullscreen-btn:hover { background-color: rgba(255, 255, 255, 0.3); }
 </style>
 </head>
 
@@ -185,7 +202,11 @@ input:focus, select:focus {
 
 <div class="main-wrapper" id="game-wrapper">
   
-  <h1 id="main-title">🧠 Brain Memory Battle</h1>
+  <!-- IKON KARAKTER BINATANG & JUDUL -->
+  <div class="cute-animals" id="animal-icons">
+    🦊 🦉 🐸 🐼 🐰
+  </div>
+  <h1 id="main-title">Brain Memory Battle</h1>
 
   <!-- TOP MENU -->
   <div id="top-menu" class="game-card">
@@ -224,7 +245,7 @@ input:focus, select:focus {
 
     <div id="grid"></div>
 
-    <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.3);"></div>
+    <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></div>
   </div>
 
   <!-- DASHBOARD -->
@@ -322,15 +343,15 @@ fullscreenBtn.addEventListener('click', () => {
   } else {
     if (document.exitFullscreen) document.exitFullscreen();
     fullscreenBtn.innerText = '🔍 Full Screen';
-    fullscreenBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-    fullscreenBtn.style.border = '2px solid #fff';
+    fullscreenBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+    fullscreenBtn.style.border = '2px solid rgba(255, 255, 255, 0.5)';
   }
 });
 document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement) {
     fullscreenBtn.innerText = '🔍 Full Screen';
-    fullscreenBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-    fullscreenBtn.style.border = '2px solid #fff';
+    fullscreenBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+    fullscreenBtn.style.border = '2px solid rgba(255, 255, 255, 0.5)';
   }
 });
 
@@ -360,6 +381,7 @@ function buildGrid(size){
 function startGame(){
   document.getElementById("top-menu").style.display = "none";
   document.getElementById("main-title").style.display = "none";
+  document.getElementById("animal-icons").style.display = "none";
   document.getElementById("boardPanel").classList.add("hidden"); 
   document.getElementById("game-info").classList.remove("hidden");
   
@@ -463,6 +485,7 @@ function endGame(){
   
   document.getElementById("top-menu").style.display = "block";
   document.getElementById("main-title").style.display = "block";
+  document.getElementById("animal-icons").style.display = "flex";
   document.getElementById("game-info").classList.add("hidden");
   document.getElementById("startBtn").innerText = "PLAY AGAIN";
   
@@ -609,7 +632,6 @@ async function eksekusiHapus() {
   
   munculkanAlert("⏳ Processing...", `Deleting all data for class ${filter}...`); 
   
-  // Using ILIKE to ignore case-sensitivity
   await supabaseClient.from('scores').delete().ilike('class', filter);
   
   location.reload(); 
