@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -211,6 +211,50 @@ input:focus, select:focus {
   transition: width 0.5s ease-in-out;
 }
 
+/* WAITING LOBBY (PLAYER MEMBERS DISPLAY) */
+.lobby-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+.team-column {
+  width: 48%;
+  background: #fafafa;
+  border-radius: 16px;
+  padding: 10px;
+  border: 2px solid #eee;
+  box-sizing: border-box;
+  min-height: 120px;
+}
+.team-column h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+.player-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.player-tag {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  animation: popIn 0.3s ease-out;
+}
+.tag-red { background: #ff5252; }
+.tag-blue { background: #2979ff; }
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* MODALS */
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -322,7 +366,7 @@ input:focus, select:focus {
     <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></div>
   </div>
 
-  <!-- DASHBOARD / LEADERBOARD WITH LIVE TEAM VS BAR -->
+  <!-- DASHBOARD / LEADERBOARD WITH LIVE TEAM VS BAR & WAITING LOBBY -->
   <div id="boardPanel" class="game-card hidden">
     <h3>📊 Live Class Leaderboard</h3>
     
@@ -347,6 +391,22 @@ input:focus, select:focus {
       <div class="bar-wrapper">
         <div id="redBar" class="red-bar"></div>
         <div id="blueBar" class="blue-bar"></div>
+      </div>
+
+      <!-- WAITING LOBBY HASIL JOIN REALTIME -->
+      <div class="lobby-container">
+        <div class="team-column" style="border-color: #ff8a8a;">
+          <h4 style="color: #d32f2f;">🔴 Red (<span id="redCount">0</span>)</h4>
+          <div id="redTeamList" class="player-tag-list">
+            <small style="color:#aaa;">Waiting for players...</small>
+          </div>
+        </div>
+        <div class="team-column" style="border-color: #90caf9;">
+          <h4 style="color: #1565c0;">🔵 Blue (<span id="blueCount">0</span>)</h4>
+          <div id="blueTeamList" class="player-tag-list">
+            <small style="color:#aaa;">Waiting for players...</small>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -419,7 +479,7 @@ let isPaused = false;
 let autoRefreshTimer = null;
 let realtimeChannel = null;
 let currentJoinedClass = "";
-let isTeacherHost = false; // Flag penanda jika perangat berfungsi sebagai Layar Guru
+let isTeacherHost = false;
 
 const colors=["#4caf50","#2979ff","#ffca28","#7c4dff","#00bcd4","#ff5252"];
 let currentColor;
@@ -458,7 +518,7 @@ function cekInput() {
     startBtn.disabled = true;
     startBtn.innerText = "⏳ WAITING FOR TEACHER...";
     startBtn.style.backgroundColor = "#ff9800";
-    connectRealtimeChannel(kelas);
+    connectRealtimeChannel(kelas, nama, team);
   } else {
     startBtn.disabled = false;
     startBtn.innerText = "START GAME";
@@ -466,17 +526,27 @@ function cekInput() {
   }
 }
 
-function connectRealtimeChannel(classCode) {
-  if (currentJoinedClass === classCode && realtimeChannel) return;
+function connectRealtimeChannel(classCode, pName = "", pTeam = "") {
+  if (currentJoinedClass === classCode && realtimeChannel) {
+    if (pName !== "") {
+      realtimeChannel.track({ name: pName, team: pTeam });
+    }
+    return;
+  }
   
   if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
   currentJoinedClass = classCode;
 
-  realtimeChannel = supabaseClient.channel('class-' + classCode);
+  realtimeChannel = supabaseClient.channel('class-' + classCode, {
+    config: { presence: { key: pName || 'host' } }
+  });
   
   realtimeChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = realtimeChannel.presenceState();
+      updateLobbyUI(state);
+    })
     .on('broadcast', { event: 'start_battle' }, payload => {
-      // Jika perangkat ini BUKAN Layar Proyektor Guru, jalankan game serentak di HP siswa!
       if (!isTeacherHost) {
         if(payload.payload && payload.payload.gridSize) {
           document.getElementById("gridSizeSelect").value = payload.payload.gridSize;
@@ -484,14 +554,44 @@ function connectRealtimeChannel(classCode) {
         startSynchronousCountdown();
       }
     })
-    .subscribe();
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED' && pName !== "") {
+        await realtimeChannel.track({ name: pName, team: pTeam });
+      }
+    });
+}
+
+function updateLobbyUI(presenceState) {
+  const redList = document.getElementById("redTeamList");
+  const blueList = document.getElementById("blueTeamList");
+  
+  let redPlayers = [];
+  let bluePlayers = [];
+
+  Object.keys(presenceState).forEach(key => {
+    presenceState[key].forEach(p => {
+      if (p.team === "🔴") redPlayers.push(p.name);
+      if (p.team === "🔵") bluePlayers.push(p.name);
+    });
+  });
+
+  document.getElementById("redCount").innerText = redPlayers.length;
+  document.getElementById("blueCount").innerText = bluePlayers.length;
+
+  redList.innerHTML = redPlayers.length > 0 ? 
+    redPlayers.map(n => `<div class="player-tag tag-red">🔴 ${n}</div>`).join('') : 
+    '<small style="color:#aaa;">Waiting for players...</small>';
+
+  blueList.innerHTML = bluePlayers.length > 0 ? 
+    bluePlayers.map(n => `<div class="player-tag tag-blue">🔵 ${n}</div>`).join('') : 
+    '<small style="color:#aaa;">Waiting for players...</small>';
 }
 
 function syncHostChannel() {
   const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
   renderBoard();
   if (classCode !== "") {
-    isTeacherHost = true; // Kunci mode Layar Guru
+    isTeacherHost = true;
     connectRealtimeChannel(classCode);
   }
 }
@@ -511,13 +611,12 @@ async function triggerHostStartMatch() {
     return;
   }
 
-  isTeacherHost = true; // Memastikan layar proyektor tetap di dasbor
+  isTeacherHost = true;
   const selectedGrid = document.getElementById("gridSizeSelect").value;
   connectRealtimeChannel(classCode);
 
   setTimeout(() => {
     if (realtimeChannel) {
-      // Kirim sinyal ke seluruh HP siswa
       realtimeChannel.send({
         type: 'broadcast',
         event: 'start_battle',
@@ -526,7 +625,6 @@ async function triggerHostStartMatch() {
       
       munculkanAlert("🚀 MATCH STARTED!", "The battle signal has been sent to all student devices! Watch the live bar below.");
       
-      // Nyalakan pembaruan skor live otomatis setiap 2 detik di layar proyektor guru
       if(autoRefreshTimer) clearInterval(autoRefreshTimer);
       autoRefreshTimer = setInterval(renderBoard, 2000);
     }
