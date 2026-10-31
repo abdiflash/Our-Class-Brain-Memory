@@ -320,9 +320,9 @@ input:focus, select:focus {
   </div>
   <h1 id="main-title">Brain Memory Battle</h1>
 
-  <!-- TOP MENU (HANYA DIGUNAKAN OLEH SISWA) -->
+  <!-- TOP MENU FOR STUDENTS -->
   <div id="top-menu" class="game-card">
-    <button class="btn-orange" onclick="bukaModalBuatKelas()" style="width: 100%; margin-bottom:20px;">
+    <button id="createClassBtn" class="btn-orange" onclick="bukaModalBuatKelas()" style="width: 100%; margin-bottom:20px;">
       👨‍🏫 TEACHER: CREATE CLASS CODE
     </button>
 
@@ -348,7 +348,7 @@ input:focus, select:focus {
     <div>
       <button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">⏱️ 60s Rush</button>
       <button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 Endless Challenge</button>
-      <button class="btn-blue" onclick="toggleBoard()">📊 Scoreboard</button>
+      <button id="scoreboardBtn" class="btn-blue" onclick="toggleBoard()">📊 Scoreboard</button>
     </div>
 
     <button id="startBtn" class="btn-purple" onclick="handleStartButtonClick()" disabled>START GAME</button>
@@ -366,7 +366,7 @@ input:focus, select:focus {
     <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></div>
   </div>
 
-  <!-- DASHBOARD / LEADERBOARD (LAYAR HOST PROYEKTOR GURU) -->
+  <!-- DASHBOARD / LEADERBOARD (HOST PROYEKTOR GURU) -->
   <div id="boardPanel" class="game-card hidden">
     <h3>📊 Live Class Leaderboard</h3>
     
@@ -507,19 +507,28 @@ function cekInput() {
   const kelas = document.getElementById("class").value.trim().toUpperCase();
   const team = document.getElementById("teamSelect").value;
   const startBtn = document.getElementById("startBtn");
+  const createClassBtn = document.getElementById("createClassBtn");
+  const scoreboardBtn = document.getElementById("scoreboardBtn");
 
   if (nama === "" || kelas === "") {
     startBtn.disabled = true;
     startBtn.innerText = "START GAME";
+    createClassBtn.disabled = false;
+    scoreboardBtn.disabled = false;
     return;
   }
 
+  // ALUR SISWA: KETIKA INPUT DATA, NONAKTIFKAN TOMBOL GURU & SCOREBOARD
+  createClassBtn.disabled = true;
+
   if (team !== "") {
+    scoreboardBtn.disabled = true; // Siswa tidak perlu buka scoreboard
     startBtn.disabled = true;
     startBtn.innerText = "⏳ WAITING FOR TEACHER...";
     startBtn.style.backgroundColor = "#ff9800";
     connectRealtimeChannel(kelas, nama, team);
   } else {
+    scoreboardBtn.disabled = false;
     startBtn.disabled = false;
     startBtn.innerText = "START GAME";
     startBtn.style.backgroundColor = "#7c4dff";
@@ -906,7 +915,7 @@ function tutupAlert() { document.getElementById("custom-alert").style.display = 
 function bukaModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "flex"; }
 function tutupModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "none"; }
 
-/* PERBAIKAN: SETELAH MEMBUAT KELAS, OTOMATIS BUKA LIVEBOARD GURU */
+/* PROSES BUAT KELAS HOST GURU */
 async function prosesBuatKelas() {
   const pin = document.getElementById("input-pin-baru").value;
   if(pin.length < 3) { alert("PIN must be at least 3 characters!"); return; }
@@ -929,7 +938,9 @@ async function prosesBuatKelas() {
       munculkanAlert("❌ Failed!", "Database connection error: " + error.message);
   } else {
       tutupAlert();
-      // Otomatis buka Liveboard untuk Guru dan masukkan kode kelasnya
+      // KUNCI LAYAR GURU DAN TAMPILKAN LIVEBOARD
+      isTeacherHost = true;
+      document.getElementById("top-menu").style.display = "none"; // Sembunyikan form siswa di layar proyektor
       document.getElementById("boardPanel").classList.remove("hidden");
       document.getElementById("filterClass").value = code;
       syncHostChannel();
