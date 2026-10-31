@@ -238,11 +238,36 @@ input:focus, select:focus {
   z-index: 9000;
 }
 #fullscreen-btn:hover { background-color: rgba(255, 255, 255, 0.3); }
+
+/* OVERLAY COUNTDOWN SERENTAK */
+#countdown-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(43, 18, 148, 0.95);
+  z-index: 10000;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+}
+#countdown-num {
+  font-size: 100px;
+  font-weight: bold;
+  color: #ffca28;
+  text-shadow: 4px 4px 0 #000;
+}
 </style>
 </head>
 
 <body>
 <button id="fullscreen-btn">🔍 Full Screen</button>
+
+<!-- COUNTDOWN OVERLAY UNTUK MODE SERENTAK -->
+<div id="countdown-overlay">
+  <div style="font-size: 24px; margin-bottom: 10px;">BATTLE STARTING IN...</div>
+  <div id="countdown-num">3</div>
+</div>
 
 <div class="main-wrapper" id="game-wrapper">
   
@@ -262,10 +287,10 @@ input:focus, select:focus {
       <input id="class" placeholder="Enter Class Code..." oninput="cekInput()" style="text-transform: uppercase;">
       <input id="name" placeholder="Enter Your Name..." oninput="cekInput()">
       
-      <select id="teamSelect">
-        <option value="">👤 Play Individual (Free)</option>
-        <option value="🔴">🔴 Red Team</option>
-        <option value="🔵">🔵 Blue Team</option>
+      <select id="teamSelect" onchange="cekInput()">
+        <option value="">👤 Play Individual (Free / Asynchronous)</option>
+        <option value="🔴">🔴 Red Team (Synchronous Match)</option>
+        <option value="🔵">🔵 Blue Team (Synchronous Match)</option>
       </select>
     </div>
 
@@ -275,7 +300,7 @@ input:focus, select:focus {
       <button class="btn-blue" onclick="toggleBoard()">📊 Scoreboard</button>
     </div>
 
-    <button id="startBtn" class="btn-purple" onclick="startGame()" disabled>START GAME</button>
+    <button id="startBtn" class="btn-purple" onclick="handleStartButtonClick()" disabled>START GAME</button>
   </div>
 
   <!-- GAME AREA -->
@@ -299,6 +324,11 @@ input:focus, select:focus {
       <button class="btn-blue" onclick="renderBoard()" style="margin:0; padding:10px 15px;">Search</button>
       <button class="btn-green" onclick="resetFilter()" style="margin:0; padding:10px 15px;">All</button>
     </div>
+
+    <!-- TOMBOL HOST GURU UNTUK MULAI PERMAINAN SERENTAK -->
+    <button id="hostStartBtn" class="btn-green" onclick="triggerHostStartMatch()" style="width: 100%; font-size: 18px; padding: 14px; margin-bottom: 15px;">
+      🚀 START TEAM BATTLE (ALL STUDENTS)
+    </button>
 
     <!-- ARENA GRAPHIC: TIM MERAH VS TIM BIRU -->
     <div class="team-arena">
@@ -380,6 +410,8 @@ let sequence=[], playerIndex=0, clickable=false;
 let timeLeft=60, timer=null, chart;
 let isPaused = false;
 let autoRefreshTimer = null;
+let realtimeChannel = null;
+let currentJoinedClass = "";
 
 const colors=["#4caf50","#2979ff","#ffca28","#7c4dff","#00bcd4","#ff5252"];
 let currentColor;
@@ -404,8 +436,98 @@ fullscreenBtn.addEventListener('click', () => {
 
 function cekInput() {
   const nama = document.getElementById("name").value.trim();
-  const kelas = document.getElementById("class").value.trim();
-  document.getElementById("startBtn").disabled = (nama === "" || kelas === "");
+  const kelas = document.getElementById("class").value.trim().toUpperCase();
+  const team = document.getElementById("teamSelect").value;
+  const startBtn = document.getElementById("startBtn");
+
+  if (nama === "" || kelas === "") {
+    startBtn.disabled = true;
+    startBtn.innerText = "START GAME";
+    return;
+  }
+
+  // JIKA SISWA BERGABUNG KE TIM (MODE SERENTAK / KAHOOT STYLE)
+  if (team !== "") {
+    startBtn.disabled = true;
+    startBtn.innerText = "⏳ WAITING FOR TEACHER...";
+    startBtn.style.backgroundColor = "#ff9800";
+    
+    // Hubungkan perangkat siswa ke channel Supabase kelas tersebut
+    connectRealtimeChannel(kelas);
+  } else {
+    // JIKA SISWA MAIN INDIVIDU (MODE ASYNCHRONOUS / BEBAS)
+    startBtn.disabled = false;
+    startBtn.innerText = "START GAME";
+    startBtn.style.backgroundColor = "#7c4dff";
+  }
+}
+
+function connectRealtimeChannel(classCode) {
+  if (currentJoinedClass === classCode && realtimeChannel) return;
+  
+  if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+  currentJoinedClass = classCode;
+
+  realtimeChannel = supabaseClient.channel('class-' + classCode);
+  realtimeChannel
+    .on('broadcast', { event: 'start_battle' }, payload => {
+      // Ketika sinyal START diterima dari Guru, jalankan game serentak!
+      startSynchronousCountdown();
+    })
+    .subscribe();
+}
+
+function handleStartButtonClick() {
+  const team = document.getElementById("teamSelect").value;
+  if (team === "") {
+    // Mode Individu: Langsung mulai mandiri
+    startGame();
+  }
+}
+
+function triggerHostStartMatch() {
+  const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
+  if (classCode === "") {
+    munculkanAlert("⚠️ Attention", "Please enter a **Class Code** in the search bar above before starting the match.");
+    return;
+  }
+
+  // Kirim sinyal broadcast ke semua HP siswa yang terhubung di kelas ini
+  const channel = supabaseClient.channel('class-' + classCode);
+  channel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      channel.send({
+        type: 'broadcast',
+        event: 'start_battle',
+        payload: { message: 'start' }
+      });
+      
+      // Layar Guru juga ikut masuk ke countdown serentak
+      startSynchronousCountdown();
+    }
+  });
+}
+
+function startSynchronousCountdown() {
+  const overlay = document.getElementById("countdown-overlay");
+  const numElem = document.getElementById("countdown-num");
+  overlay.style.display = "flex";
+  
+  let count = 3;
+  numElem.innerText = count;
+
+  let intv = setInterval(() => {
+    count--;
+    if (count > 0) {
+      numElem.innerText = count;
+    } else if (count === 0) {
+      numElem.innerText = "GO!";
+    } else {
+      clearInterval(intv);
+      overlay.style.display = "none";
+      startGame(); // Mulai ronde permainan secara persis serentak!
+    }
+  }, 1000);
 }
 
 function setMode(m){
@@ -456,7 +578,6 @@ function nextLevel(){
   if(timeLeft<=0) return;
   clickable=false;
   
-  // Ukuran grid bertambah bertahap sesuai jumlah level yang diselesaikan
   let size = solvedCount < 3 ? 3 : (solvedCount < 8 ? 4 : 5);
   buildGrid(size);
   
@@ -543,10 +664,12 @@ function endGame(){
   document.getElementById("game-info").classList.add("hidden");
   document.getElementById("grid").classList.add("hidden");
   
-  document.getElementById("startBtn").innerText = "PLAY AGAIN";
+  // Reset kondisi input
+  cekInput();
+  
   document.getElementById("msg").innerHTML = "🏁 TIME'S UP!";
   
-  munculkanAlert("🏆 Game Over!", "Your Final Score: <br><b style='font-size:36px; color:#ff9800;'>" + score + "</b><br><small>Levels Completed: " + solvedCount + "</small>");
+  munculkanAlert("🏆 Game Over!", "Your Final Score: <br><b style='font-size:32px; color:#ff9800;'>" + score + "</b><br><small>Levels Completed: " + solvedCount + "</small>");
 }
 
 async function saveData(){
