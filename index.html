@@ -167,7 +167,7 @@ input:focus, select:focus {
 
 .hidden { display: none !important; }
 
-/* TEAM BATTLE ARENA (KANAN & KIRI) */
+/* TEAM BATTLE ARENA (PUSH BAR SYSTEM 50-50) */
 .team-arena {
   background: #f0f4ff;
   border-radius: 20px;
@@ -192,23 +192,23 @@ input:focus, select:focus {
 }
 .bar-wrapper {
   display: flex;
-  height: 24px;
+  height: 28px;
   background: #e0e0e0;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
 }
 .red-bar {
-  background: #ff5252;
+  background: linear-gradient(90deg, #ff5252, #ff7979);
   height: 100%;
   width: 50%;
-  transition: width 0.5s ease-in-out;
+  transition: width 0.4s ease-out;
 }
 .blue-bar {
-  background: #2979ff;
+  background: linear-gradient(90deg, #4285f4, #2979ff);
   height: 100%;
   width: 50%;
-  transition: width 0.5s ease-in-out;
+  transition: width 0.4s ease-out;
 }
 
 /* WAITING LOBBY */
@@ -480,6 +480,7 @@ let autoRefreshTimer = null;
 let realtimeChannel = null;
 let currentJoinedClass = "";
 let isTeacherHost = false;
+let currentRecordId = null; // Menyimpan ID Supabase untuk update skor real-time
 
 const colors=["#4caf50","#2979ff","#ffca28","#7c4dff","#00bcd4","#ff5252"];
 let currentColor;
@@ -655,8 +656,9 @@ async function triggerHostStartMatch() {
       
       munculkanAlert("🚀 MATCH STARTED!", "The battle signal has been sent to all student devices! Watch the live bar below.");
       
+      // AUTO REFRESH DIPERCEPAT JADI 1 DETIK (INSTANT SCORE UPDATE)
       if(autoRefreshTimer) clearInterval(autoRefreshTimer);
-      autoRefreshTimer = setInterval(renderBoard, 2000);
+      autoRefreshTimer = setInterval(renderBoard, 1000);
     }
   }, 300);
 }
@@ -700,7 +702,7 @@ function buildGrid(size){
   }
 }
 
-function startGame(){
+async function startGame(){
   document.getElementById("top-menu").style.display = "none";
   document.getElementById("main-title").style.display = "none";
   document.getElementById("animal-icons").style.display = "none";
@@ -713,7 +715,24 @@ function startGame(){
   clearInterval(timer);
   
   level=1; score=0; solvedCount=0; isPaused=false; timeLeft=60;
+  currentRecordId = null;
   
+  // INISIALISASI BARIS SKOR SISWA DI DATABASE UNTUK UPDATE REAL-TIME
+  let inputName = document.getElementById("name").value.trim();
+  let team = document.getElementById("teamSelect").value;
+  let classCode = document.getElementById("class").value.trim().toUpperCase();
+  let finalName = team !== "" ? team + " " + inputName : inputName;
+
+  if (classCode !== "") {
+    const { data } = await supabaseClient.from("scores").insert([{
+      name: finalName, class: classCode, score: 0, mode: mode
+    }]).select();
+
+    if (data && data.length > 0) {
+      currentRecordId = data[0].id;
+    }
+  }
+
   if(mode === "challenge") {
     document.getElementById("extra").innerText = `🔥 Level 1`;
   } else {
@@ -789,6 +808,9 @@ function handleClick(id){
     if(playerIndex===sequence.length){
       clickable=false; level++; solvedCount++;
       
+      // SYNC SKOR KE SUPABASE SECARA INSTAN / REALTIME
+      syncScoreToDatabase();
+
       isPaused = true;
       document.getElementById("msg").innerHTML = "✨ <b>PERFECT! +10</b>";
       grid.innerHTML = "";
@@ -803,6 +825,7 @@ function handleClick(id){
     cells[id].style.background="#ff5252";
     clickable=false;
     
+    syncScoreToDatabase();
     isPaused = true;
     
     if (mode === "challenge") {
@@ -821,6 +844,14 @@ function handleClick(id){
   updateUI();
 }
 
+async function syncScoreToDatabase() {
+  if (currentRecordId) {
+    await supabaseClient.from("scores")
+      .update({ score: score })
+      .eq("id", currentRecordId);
+  }
+}
+
 function updateUI(){
   document.getElementById("score").innerText=score;
   if (mode === "exam") {
@@ -832,7 +863,7 @@ function updateUI(){
 
 function endGame(){
   clickable=false; clearInterval(timer);
-  saveData();
+  syncScoreToDatabase();
   
   document.getElementById("top-menu").style.display = "block";
   document.getElementById("main-title").style.display = "block";
@@ -847,18 +878,6 @@ function endGame(){
   munculkanAlert("🏆 Game Over!", "Your Final Score: <br><b style='font-size:32px; color:#ff9800;'>" + score + "</b><br><small>Levels Completed: " + solvedCount + "</small>");
 }
 
-async function saveData(){
-  let inputName = document.getElementById("name").value.trim();
-  let team = document.getElementById("teamSelect").value;
-  let finalName = team !== "" ? team + " " + inputName : inputName;
-
-  await supabaseClient.from("scores").insert([{
-    name: finalName,
-    class: document.getElementById("class").value.trim().toUpperCase(),
-    score: score, mode: mode
-  }]);
-}
-
 function toggleBoard(){
   const board = document.getElementById("boardPanel");
   board.classList.toggle("hidden");
@@ -866,7 +885,7 @@ function toggleBoard(){
   if(!board.classList.contains("hidden")) {
     isTeacherHost = true;
     renderBoard();
-    autoRefreshTimer = setInterval(renderBoard, 2000);
+    autoRefreshTimer = setInterval(renderBoard, 1000);
   } else {
     if(autoRefreshTimer) clearInterval(autoRefreshTimer);
   }
@@ -895,9 +914,17 @@ async function renderBoard(){
   document.getElementById("redScore").innerText = redTotal;
   document.getElementById("blueScore").innerText = blueTotal;
 
+  // KALKULASI PERSENTASE UNTUK GRAFIK SALING MENDORONG 50-50
   let grandTotal = redTotal + blueTotal;
-  let redPct = grandTotal > 0 ? (redTotal / grandTotal) * 100 : 50;
-  let bluePct = grandTotal > 0 ? (blueTotal / grandTotal) * 100 : 50;
+  let redPct, bluePct;
+
+  if (grandTotal === 0) {
+    redPct = 50;
+    bluePct = 50;
+  } else {
+    redPct = (redTotal / grandTotal) * 100;
+    bluePct = (blueTotal / grandTotal) * 100;
+  }
 
   document.getElementById("redBar").style.width = redPct + "%";
   document.getElementById("blueBar").style.width = bluePct + "%";
