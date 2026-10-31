@@ -211,7 +211,7 @@ input:focus, select:focus {
   transition: width 0.5s ease-in-out;
 }
 
-/* WAITING LOBBY (PLAYER MEMBERS DISPLAY) */
+/* WAITING LOBBY */
 .lobby-container {
   display: flex;
   justify-content: space-between;
@@ -320,7 +320,7 @@ input:focus, select:focus {
   </div>
   <h1 id="main-title">Brain Memory Battle</h1>
 
-  <!-- TOP MENU (UNTUK SISWA BEBAS / PEMAIN INDIVIDU) -->
+  <!-- TOP MENU (HANYA DIGUNAKAN OLEH SISWA) -->
   <div id="top-menu" class="game-card">
     <button class="btn-orange" onclick="bukaModalBuatKelas()" style="width: 100%; margin-bottom:20px;">
       👨‍🏫 TEACHER: CREATE CLASS CODE
@@ -366,7 +366,7 @@ input:focus, select:focus {
     <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></div>
   </div>
 
-  <!-- DASHBOARD / LEADERBOARD WITH LIVE TEAM VS BAR & WAITING LOBBY (LAYAR PROYEKTOR GURU) -->
+  <!-- DASHBOARD / LEADERBOARD (LAYAR HOST PROYEKTOR GURU) -->
   <div id="boardPanel" class="game-card hidden">
     <h3>📊 Live Class Leaderboard</h3>
     
@@ -393,7 +393,7 @@ input:focus, select:focus {
         <div id="blueBar" class="blue-bar"></div>
       </div>
 
-      <!-- WAITING LOBBY HASIL JOIN SISWA REALTIME -->
+      <!-- WAITING LOBBY SISWA -->
       <div class="lobby-container">
         <div class="team-column" style="border-color: #ff8a8a;">
           <h4 style="color: #d32f2f;">🔴 Red (<span id="redCount">0</span>)</h4>
@@ -906,6 +906,7 @@ function tutupAlert() { document.getElementById("custom-alert").style.display = 
 function bukaModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "flex"; }
 function tutupModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "none"; }
 
+/* PERBAIKAN: SETELAH MEMBUAT KELAS, OTOMATIS BUKA LIVEBOARD GURU */
 async function prosesBuatKelas() {
   const pin = document.getElementById("input-pin-baru").value;
   if(pin.length < 3) { alert("PIN must be at least 3 characters!"); return; }
@@ -927,8 +928,14 @@ async function prosesBuatKelas() {
   if(error) {
       munculkanAlert("❌ Failed!", "Database connection error: " + error.message);
   } else {
+      tutupAlert();
+      // Otomatis buka Liveboard untuk Guru dan masukkan kode kelasnya
+      document.getElementById("boardPanel").classList.remove("hidden");
+      document.getElementById("filterClass").value = code;
+      syncHostChannel();
+      
       munculkanAlert("✅ Class Created!",
-          `Write this CLASS CODE on the board:<br><br><b style='font-size:40px; color:#2979ff; letter-spacing: 4px;'>${code}</b><br><br>Teacher Secret PIN: <b>${pin}</b><br><small>(Remember this PIN to reset data)</small>`
+          `Classroom Host Liveboard is Ready!<br><br>Write this CLASS CODE on the board for students:<br><b style='font-size:40px; color:#2979ff; letter-spacing: 4px;'>${code}</b><br><br>Teacher Secret PIN: <b>${pin}</b>`
       );
   }
 }
