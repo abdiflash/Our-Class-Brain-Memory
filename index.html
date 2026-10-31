@@ -18,7 +18,7 @@ html, body {
   width: 100%;
   min-height: 100vh;
   font-family: 'Fredoka', sans-serif;
-  background-color: #2b1294; /* Warna dasar ungu gelap dari referensi */
+  background-color: #2b1294; 
   background-image: radial-gradient(circle at top left, #4422b5, #17075c);
   color: #333;
   text-align: center;
@@ -92,7 +92,7 @@ button:disabled {
 }
 
 /* Button Colors */
-.btn-green { background: #00e676; box-shadow: 0 6px 0 #00c853; }
+.btn-green { background: #4caf50; box-shadow: 0 6px 0 #388e3c; } /* Warna hijau diperhalus */
 .btn-orange { background: #ff9800; box-shadow: 0 6px 0 #f57c00; }
 .btn-blue { background: #2979ff; box-shadow: 0 6px 0 #1565c0; }
 .btn-purple { background: #7c4dff; box-shadow: 0 6px 0 #651fff; font-size: 20px; padding: 15px 30px; width: 90%; margin-top: 20px;}
@@ -243,7 +243,8 @@ input:focus, select:focus {
       <div id="extra" style="color:#2979ff;">Ready</div>
     </div>
 
-    <div id="grid"></div>
+    <!-- Grid disembunyikan secara default agar tidak ada jarak kosong -->
+    <div id="grid" class="hidden"></div>
 
     <div id="msg" style="margin-top:15px; min-height:30px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></div>
   </div>
@@ -327,7 +328,8 @@ let mode="exam", level=1, score=0, challengeCount=0;
 let sequence=[], playerIndex=0, clickable=false;
 let question=1, totalQuestion=10, timeLeft=60, timer=null, chart;
 let isPaused = false;
-const colors=["#00e676","#2979ff","#ffca28","#7c4dff","#00bcd4","#ff5252"];
+/* Warna hijau (#4caf50) juga disesuaikan dalam array pola memori jika mau */
+const colors=["#4caf50","#2979ff","#ffca28","#7c4dff","#00bcd4","#ff5252"];
 let currentColor;
 
 const grid=document.getElementById("grid");
@@ -384,6 +386,10 @@ function startGame(){
   document.getElementById("animal-icons").style.display = "none";
   document.getElementById("boardPanel").classList.add("hidden"); 
   document.getElementById("game-info").classList.remove("hidden");
+  
+  // Memunculkan grid saat permainan dimulai
+  document.getElementById("grid").classList.remove("hidden");
+  document.getElementById("msg").innerHTML = "";
   
   clearInterval(timer);
   level=1; score=0; question=1; challengeCount=0; isPaused=false;
@@ -487,9 +493,13 @@ function endGame(){
   document.getElementById("main-title").style.display = "block";
   document.getElementById("animal-icons").style.display = "flex";
   document.getElementById("game-info").classList.add("hidden");
-  document.getElementById("startBtn").innerText = "PLAY AGAIN";
   
+  // Sembunyikan grid agar tidak ada jarak berlebih di bawah "PLAY AGAIN"
+  document.getElementById("grid").classList.add("hidden");
+  
+  document.getElementById("startBtn").innerText = "PLAY AGAIN";
   document.getElementById("msg").innerHTML = "🏁 GAME OVER!";
+  
   munculkanAlert("🏆 Game Over!", "Your Final Score: <br><b style='font-size:32px; color:#ff9800;'>" + score + "</b>");
 }
 
@@ -543,7 +553,8 @@ function drawChart(data){
   data.forEach(d=>{ if(d.score>=200) t++; else if(d.score>=100) s++; else r++; });
   chart=new Chart(ctx,{
     type:'doughnut',
-    data:{ labels:['High','Medium','Low'], datasets:[{ data:[t,s,r], backgroundColor:['#00e676','#ffca28','#ff5252'] }] },
+    // Mengganti warna chart hijau neon menjadi hijau lembut (#4caf50)
+    data:{ labels:['High','Medium','Low'], datasets:[{ data:[t,s,r], backgroundColor:['#4caf50','#ffca28','#ff5252'] }] },
     options:{ animation:false, plugins:{ legend:{ labels:{color:'#333', font:{family:'Fredoka'}} } } }
   });
 }
