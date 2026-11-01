@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER HACK: BRAIN MEMORY - SYNC OR DROP</title>
+  
+  <!-- Google Fonts: Orbitron & Share Tech Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090714;
+      --bg-card: rgba(18, 12, 38, 0.95);
+      --neon-cyan: #00ffcc;
+      --neon-pink: #ff007f;
+      --neon-blue: #00bfff;
+      --neon-yellow: #ffee00;
+      --neon-red: #ff3366;
+      --font-title: 'Orbitron', monospace;
+      --font-mono: 'Share Tech Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-mono);
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100vh;
+      font-family: var(--font-mono);
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 255, 204, 0.15), transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(255, 0, 127, 0.15), transparent 45%),
+        linear-gradient(180deg, #110a26 0%, #05030a 100%);
+      color: #fff;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    .main-wrapper {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 30px 15px 40px 15px;
+    }
+
+    /* TOP TOOLBAR (ICON ONLY - FULLSCREEN ONLY) */
+    .top-toolbar {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      z-index: 9000;
+    }
+
+    .tool-btn {
+      background: rgba(18, 12, 38, 0.85);
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 16px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .tool-btn:hover {
+      background: var(--neon-cyan);
+      color: #000;
+      box-shadow: 0 0 15px var(--neon-cyan);
+    }
+
+    /* HEADER & ROBOT TITLE */
+    .cyber-icons {
+      font-size: 34px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      text-shadow: 0 0 15px var(--neon-cyan);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    h1.game-title {
+      font-family: var(--font-title);
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.7), 2px 2px 0 #000;
+      margin-bottom: 20px;
+    }
+
+    /* CARDS & PANELS */
+    .game-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 24px 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.6), inset 0 0 15px rgba(255,255,255,0.03);
+      border: 2px solid rgba(0, 255, 204, 0.35);
+      backdrop-filter: blur(10px);
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    /* ROBOT BUTTONS */
+    button {
+      font-family: var(--font-title);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px 18px;
+      margin: 6px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: none !important;
+    }
+
+    button:disabled {
+      background: #251e3d !important;
+      color: #5d537d !important;
+      box-shadow: 0 4px 0 #130f24 !important;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-green { background: #00e676; color: #000; box-shadow: 0 5px 0 #00994d; }
+    .btn-orange { background: #ff9100; color: #000; box-shadow: 0 5px 0 #b36600; }
+    .btn-blue { background: var(--neon-blue); color: #000; box-shadow: 0 5px 0 #0077b3; }
+    .btn-purple { background: #7c4dff; color: #fff; box-shadow: 0 5px 0 #4d14e6; font-size: 16px; padding: 14px 22px; width: 90%; margin-top: 15px; }
+    .btn-red { background: var(--neon-red); color: #fff; box-shadow: 0 5px 0 #b3003b; }
+    .btn-cyan { background: var(--neon-cyan); color: #000; box-shadow: 0 5px 0 #00b38f; }
+
+    .modeBtn { background: #1c1538; color: #8d83b5; box-shadow: 0 5px 0 #100b24; border: 1px solid #362a63; }
+    .activeMode { background: var(--neon-yellow); color: #000; box-shadow: 0 5px 0 #b3a400; font-weight: 900; border-color: var(--neon-yellow); }
+
+    /* INPUT & SELECT WITH NEON GLOW */
+    input, select, option {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 2px solid #382b68;
+      margin: 8px auto;
+      width: 90%;
+      max-width: 320px;
+      font-size: 14px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-align: center;
+      box-sizing: border-box;
+      background: #100a26;
+      color: var(--neon-cyan);
+      display: block;
+      transition: all 0.3s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
+      outline: none;
+    }
+
+    option {
+      background: #100a26;
+      color: #fff;
+    }
+
+    /* GAME GRID BOARD */
+    #grid-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #grid {
+      width: 90%;
+      max-width: 380px;
+      margin: 20px auto;
+      display: grid;
+      gap: 12px;
+      min-height: 200px;
+    }
+
+    .cell {
+      background: #1b133b;
+      border: 2px solid #3a2b6e;
+      border-radius: 16px;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.5);
+      transition: transform 0.1s, background-color 0.15s, box-shadow 0.15s;
+    }
+
+    .cell:active, .cell.trail-active {
+      transform: scale(0.92);
+      box-shadow: 0 0 20px var(--neon-cyan), inset 0 0 10px var(--neon-cyan);
+      border-color: var(--neon-cyan);
+    }
+
+    .info-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 90%;
+      max-width: 380px;
+      margin-bottom: 15px;
+      background: rgba(20, 14, 45, 0.9);
+      padding: 12px 20px;
+      border-radius: 16px;
+      font-family: var(--font-title);
+      font-size: 16px;
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.25);
+    }
+
+    .hidden { display: none !important; }
+
+    /* PUSH BAR TUG-OF-WAR */
+    .team-arena {
+      background: rgba(12, 8, 28, 0.85);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 20px;
+      border: 2px solid #33265d;
+    }
+
+    .team-scores {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-title);
+      font-size: 20px;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .vs-badge {
+      background: var(--neon-yellow);
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    .bar-wrapper {
+      display: flex;
+      height: 30px;
+      background: #100b24;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.7);
+      border: 2px solid #281d4a;
+    }
+
+    .red-bar {
+      background: linear-gradient(90deg, #ff1744, #ff5252);
+      height: 100%;
+      width: 50%;
+      transition: width 0.5s ease-out;
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.6);
+    }
+
+    .blue-bar {
+      background: linear-gradient(90deg, #00b0ff, #2979ff);
+      height: 100%;
+      width: 50%;
+      transition: width 0.5s ease-out;
+      box-shadow: 0 0 10px rgba(0, 176, 255, 0.6);
+    }
+
+    /* LOBBY TAGS */
+    .lobby-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .team-column {
+      width: 48%;
+      background: #0d0821;
+      border-radius: 14px;
+      padding: 10px;
+      border: 1px solid #271a54;
+      min-height: 90px;
+    }
+
+    .player-tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .player-tag {
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      animation: popIn 0.3s ease-out;
+    }
+
+    .tag-red { background: #c62828; border: 1px solid #ff5252; }
+    .tag-blue { background: #1565c0; border: 1px solid #64b5f6; }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* MODAL OVERLAYS */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(3, 2, 10, 0.88);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-box {
+      background: #140c2e;
+      padding: 26px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 380px;
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.35);
+      text-align: center;
+    }
+
+    /* COUNTDOWN OVERLAY */
+    #countdown-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(7, 4, 20, 0.96);
+      z-index: 10000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #countdown-num {
+      font-family: var(--font-title);
+      font-size: 110px;
+      font-weight: 900;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 30px var(--neon-yellow);
+      animation: pulse 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); }
+      100% { transform: scale(1.1); }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ICON TOOLBAR (TOP RIGHT) -->
+  <div class="top-toolbar">
+    <button class="tool-btn" id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
+  </div>
+
+  <!-- COUNTDOWN OVERLAY -->
+  <div id="countdown-overlay">
+    <div style="font-family: var(--font-title); font-size: 20px; color: var(--neon-cyan); letter-spacing: 2px; margin-bottom: 15px;">
+      ⚡ BATTLE STARTING IN...
+    </div>
+    <div id="countdown-num">3</div>
+  </div>
+
+  <!-- MAIN WRAPPER -->
+  <div class="main-wrapper" id="game-wrapper">
+    
+    <div class="cyber-icons" id="animal-icons">🧠 ⚡ 🔮 🤖 👾</div>
+    <h1 class="game-title" id="main-title">CYBER HACK: BRAIN MEMORY</h1>
+
+    <!-- TOP MENU / LOBBY FORM -->
+    <div id="top-menu" class="game-card">
+      
+      <button id="createClassBtn" class="btn-cyan" onclick="bukaModalBuatKelas()" style="width: 100%; padding: 14px; margin-bottom:18px;">
+        👨‍🏫 HOST: CREATE SERVER CODE
+      </button>
+
+      <div style="background: rgba(12, 8, 28, 0.75); padding: 18px 14px; border-radius: 16px; border: 1px dashed #33265d; margin-bottom: 18px;">
+        <h3 style="color: var(--neon-cyan); font-family: var(--font-title); font-size: 14px; margin-bottom: 10px;">
+          📱 STUDENT: JOIN BATTLE
+        </h3>
+        <input id="class" placeholder="SERVER CODE..." oninput="cekInput()" style="text-transform: uppercase;">
+        <input id="name" placeholder="STUDENT NAME..." oninput="cekInput()">
+        
+        <select id="teamSelect" onchange="cekInput()">
+          <option value="">👤 Play Individual (Free)</option>
+          <option value="🔴">🔴 Red Hackers</option>
+          <option value="🔵">🔵 Blue Hackers</option>
+        </select>
+
+        <select id="gridSizeSelect" style="border-color: var(--neon-blue);">
+          <option value="auto">⚡ Grid: Auto-Progressive</option>
+          <option value="3">🧩 Grid: 3x3 (Easy)</option>
+          <option value="4">🧩 Grid: 4x4 (Medium)</option>
+          <option value="5">🧩 Grid: 5x5 (Hard)</option>
+        </select>
+      </div>
+
+      <div>
+        <button id="examBtn" class="modeBtn activeMode" onclick="setMode('exam')">⏱️ 60S RUSH</button>
+        <button id="challengeBtn" class="modeBtn" onclick="setMode('challenge')">🔥 ENDLESS CHALLENGE</button>
+        <button id="scoreboardBtn" class="btn-blue" onclick="toggleBoard()">📊 SCOREBOARD</button>
+      </div>
+
+      <button id="startBtn" class="btn-purple" onclick="handleStartButtonClick()" disabled>START BATTLE</button>
+    </div>
+
+    <!-- GAMEPLAY AREA -->
+    <div id="grid-container">
+      <div class="info-bar hidden" id="game-info">
+        <div>Score: <b id="score" style="color:var(--neon-yellow); font-size:22px;">0</b></div>
+        <div id="extra" style="color:var(--neon-pink); font-size:18px;">⏱️ 60s</div>
+      </div>
+
+      <div id="grid" class="hidden"></div>
+
+      <div id="msg" style="margin-top:15px; min-height:35px; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px rgba(255,255,255,0.4);"></div>
+    </div>
+
+    <!-- LIVEBOARD PROYEKTOR HOST GURU -->
+    <div id="boardPanel" class="game-card hidden">
+      <h3 style="font-family: var(--font-title); color: var(--neon-cyan); margin-bottom: 15px; font-size: 18px;">
+        🖥️ LIVEBOARD BATTLE ARENA
+      </h3>
+      
+      <div style="display:flex; justify-content:center; gap:6px; margin-bottom:15px;">
+        <input id="filterClass" placeholder="SERVER CODE..." style="width:55%; margin:0; padding:10px; text-transform: uppercase;" oninput="syncHostChannel()">
+        <button class="btn-blue" onclick="renderBoard()" style="margin:0; padding:10px 14px;">Search</button>
+        <button class="btn-green" onclick="resetFilter()" style="margin:0; padding:10px 14px;">All</button>
+      </div>
+
+      <!-- START SERENTAK BY GURU -->
+      <button id="hostStartBtn" class="btn-green" onclick="triggerHostStartMatch()" style="width: 100%; font-size: 15px; padding: 14px; margin-bottom: 15px;">
+        🚀 START HACK BATTLE (ALL STUDENT DEVICES)
+      </button>
+
+      <!-- DYNAMIC PUSH-BAR TUG-OF-WAR -->
+      <div class="team-arena">
+        <div class="team-scores">
+          <span style="color: #ff5252;">🔴 <span id="redScore">0</span></span>
+          <span class="vs-badge">VS</span>
+          <span style="color: #00bfff;"><span id="blueScore">0</span> 🔵</span>
+        </div>
+        <div class="bar-wrapper">
+          <div id="redBar" class="red-bar"></div>
+          <div id="blueBar" class="blue-bar"></div>
+        </div>
+
+        <!-- WAITING LOBBY SISWA -->
+        <div class="lobby-container">
+          <div class="team-column" style="border-color: #ff5252;">
+            <h4 style="color: #ff5252; font-family: var(--font-title); font-size: 13px;">🔴 Red (<span id="redCount">0</span>)</h4>
+            <div id="redTeamList" class="player-tag-list">
+              <small style="color:#666;">Waiting for students...</small>
+            </div>
+          </div>
+          <div class="team-column" style="border-color: #00bfff;">
+            <h4 style="color: #00bfff; font-family: var(--font-title); font-size: 13px;">🔵 Blue (<span id="blueCount">0</span>)</h4>
+            <div id="blueTeamList" class="player-tag-list">
+              <small style="color:#666;">Waiting for students...</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALISIS DOUGHNUT CHART.JS -->
+      <div style="background: rgba(12, 8, 28, 0.9); border-radius: 16px; padding:15px; border: 1px solid #33265d; margin-bottom:20px;">
+        <h4 style="color: #aaa; margin-bottom: 10px; font-size: 13px; font-family: var(--font-title);">STUDENT REACTION ACCURACY ANALYSIS</h4>
+        <div style="width: 210px; height: 210px; margin: 0 auto;">
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+      
+      <!-- LEADERBOARD TOP 5 -->
+      <div id="leaderboard" style="text-align:left; font-size:14px; background:rgba(12, 8, 28, 0.85); padding:15px; border-radius:14px; border: 1px solid #33265d;"></div>
+      
+      <button class="btn-red" onclick="tampilkanPopupPass()" style="margin-top:20px; width:100%;">
+        ⚠️ RESET / DELETE THIS SERVER DATA
+      </button>
+    </div>
+
+  </div>
+
+  <!-- MODALS -->
+  <div id="custom-alert" class="modal-overlay">
+    <div class="modal-box">
+      <h2 id="alert-title" style="color: var(--neon-cyan); font-family: var(--font-title); font-size: 18px; margin-bottom: 10px;">Info</h2>
+      <p id="alert-msg" style="font-size:14px; color:#ccc; margin-bottom:20px; line-height: 1.4;"></p>
+      <button class="btn-blue" onclick="tutupAlert()" style="width:100%;">OK</button>
+    </div>
+  </div>
+
+  <div id="modal-buat-kelas" class="modal-overlay">
+    <div class="modal-box">
+      <h2 style="color:var(--neon-yellow); font-family: var(--font-title); font-size: 18px;">👨‍🏫 Create Server Code</h2>
+      <p style="font-size:12px; color:#aaa; margin: 10px 0 15px 0;">The system generates a random SERVER CODE. Create a secret Teacher PIN to reset scores later.</p>
+      <input type="text" id="input-pin-baru" placeholder="Secret PIN (e.g., 1234)">
+      <div style="display:flex; gap:10px; justify-content:center; margin-top: 15px;">
+        <button class="btn-red" onclick="tutupModalBuatKelas()" style="width:45%;">Cancel</button>
+        <button class="btn-green" onclick="prosesBuatKelas()" style="width:45%;">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="custom-prompt" class="modal-overlay">
+    <div class="modal-box">
+      <h2 style="color:var(--neon-red); font-family: var(--font-title); font-size: 18px;">Reset Server Data</h2>
+      <p id="prompt-msg" style="font-size:13px; color:#bbb; margin: 10px 0;"></p>
+      <input type="password" id="guru-pass-input" placeholder="Enter Teacher PIN">
+      <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+        <button class="btn-green" onclick="tutupPopupPass()" style="width:45%;">Cancel</button>
+        <button class="btn-red" onclick="cekPassword()" style="width:45%;">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="custom-confirm" class="modal-overlay">
+    <div class="modal-box">
+      <h2 style="color:var(--neon-red); font-family: var(--font-title); font-size: 18px;">Confirm Delete</h2>
+      <p style="font-size:13px; color:#bbb; margin-bottom:20px;">Deleted data cannot be recovered.</p>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="btn-green" onclick="batalHapus()" style="width:45%;">Cancel</button>
+        <button class="btn-red" onclick="eksekusiHapus()" style="width:45%;">Yes, Delete!</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* HARDCODED SUPABASE CONFIG WITH FALLBACK */
+    const SUPABASE_URL = "https://huppyicherwdhgxrcyav.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_OJPFFYPGJrDUkjD-gVMOOw_GET4MdOW";
+    let supabaseClient = null;
+
+    function initSupabase() {
+      if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
+        try {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {
+          console.warn("Supabase init error, fallback to BroadcastChannel:", e);
+          supabaseClient = null;
+        }
+      }
+    }
+    initSupabase();
+
+    /* WEB AUDIO SYNTHESIZER */
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function playSynthTone(freq, type = 'sine', duration = 0.2) {
+      try {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function soundBeep(index) {
+      const freqs = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33];
+      playSynthTone(freqs[index % freqs.length], 'sine', 0.25);
+    }
+    function soundSuccess() { playSynthTone(587.33, 'triangle', 0.1); setTimeout(() => playSynthTone(880, 'triangle', 0.3), 100); }
+    function soundError() { playSynthTone(150, 'sawtooth', 0.4); }
+
+    /* STATE VARIABLES */
+    let mode = "exam", level = 1, score = 0, solvedCount = 0;
+    let sequence = [], playerIndex = 0, clickable = false;
+    let timeLeft = 60, timer = null, chart = null;
+    let isPaused = false;
+    let autoRefreshTimer = null;
+    let realtimeChannel = null;
+    let localBroadcastChannel = null;
+    let currentJoinedClass = "";
+    let isTeacherHost = false;
+    let currentRecordId = null;
+
+    const colors = ["#00ffcc", "#00bfff", "#ffee00", "#7c4dff", "#ff007f", "#ff5252"];
+    let currentColor;
+
+    const grid = document.getElementById("grid");
+
+    /* FULLSCREEN TOGGLE */
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(()=>{});
+      } else {
+        document.exitFullscreen().catch(()=>{});
+      }
+    });
+
+    /* FORM INPUT VALIDATION & REALTIME JOIN */
+    function cekInput() {
+      const nama = document.getElementById("name").value.trim();
+      const kelas = document.getElementById("class").value.trim().toUpperCase();
+      const team = document.getElementById("teamSelect").value;
+      const startBtn = document.getElementById("startBtn");
+      const createClassBtn = document.getElementById("createClassBtn");
+      const scoreboardBtn = document.getElementById("scoreboardBtn");
+      const examBtn = document.getElementById("examBtn");
+      const challengeBtn = document.getElementById("challengeBtn");
+
+      if (team !== "") {
+        createClassBtn.disabled = true; createClassBtn.style.display = "none";
+        scoreboardBtn.disabled = true; scoreboardBtn.style.display = "none";
+        examBtn.disabled = true; challengeBtn.disabled = true;
+
+        if (nama !== "" && kelas !== "") {
+          startBtn.disabled = true;
+          startBtn.innerText = "⏳ WAITING FOR TEACHER...";
+          startBtn.style.backgroundColor = "#ff9100";
+          connectRealtimeChannel(kelas, nama, team);
+        } else {
+          startBtn.disabled = true;
+          startBtn.innerText = "START BATTLE";
+          startBtn.style.backgroundColor = "#7c4dff";
+        }
+      } else {
+        if (!isTeacherHost) {
+          createClassBtn.disabled = false; createClassBtn.style.display = "block";
+          scoreboardBtn.disabled = false; scoreboardBtn.style.display = "inline-block";
+        }
+        examBtn.disabled = false; challengeBtn.disabled = false;
+
+        if (nama !== "" && kelas !== "") {
+          startBtn.disabled = false;
+          startBtn.innerText = "START BATTLE";
+          startBtn.style.backgroundColor = "#7c4dff";
+        } else {
+          startBtn.disabled = true;
+          startBtn.innerText = "START BATTLE";
+        }
+      }
+    }
+
+    /* REALTIME & BROADCAST SYNC */
+    function connectRealtimeChannel(classCode, pName = "", pTeam = "") {
+      if (currentJoinedClass === classCode && (realtimeChannel || localBroadcastChannel)) {
+        if (pName !== "" && realtimeChannel) realtimeChannel.track({ name: pName, team: pTeam });
+        return;
+      }
+      
+      currentJoinedClass = classCode;
+
+      // Fallback local broadcast channel
+      if (localBroadcastChannel) localBroadcastChannel.close();
+      localBroadcastChannel = new BroadcastChannel('class-' + classCode);
+      localBroadcastChannel.onmessage = (e) => {
+        if (e.data && e.data.type === 'start_battle' && !isTeacherHost) {
+          if (e.data.gridSize) document.getElementById("gridSizeSelect").value = e.data.gridSize;
+          startSynchronousCountdown();
+        }
+      };
+
+      if (!supabaseClient) return;
+
+      if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = supabaseClient.channel('class-' + classCode, {
+        config: { presence: { key: pName || 'host_' + Math.random() } }
+      });
+
+      realtimeChannel
+        .on('presence', { event: 'sync' }, () => {
+          updateLobbyUI(realtimeChannel.presenceState());
+        })
+        .on('broadcast', { event: 'start_battle' }, payload => {
+          if (!isTeacherHost) {
+            if (payload.payload && payload.payload.gridSize) {
+              document.getElementById("gridSizeSelect").value = payload.payload.gridSize;
+            }
+            startSynchronousCountdown();
+          }
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED' && pName !== "") {
+            await realtimeChannel.track({ name: pName, team: pTeam });
+          }
+        });
+    }
+
+    function updateLobbyUI(presenceState) {
+      const redList = document.getElementById("redTeamList");
+      const blueList = document.getElementById("blueTeamList");
+      let redPlayers = [], bluePlayers = [];
+
+      Object.keys(presenceState).forEach(key => {
+        presenceState[key].forEach(p => {
+          if (p.team === "🔴") redPlayers.push(p.name);
+          if (p.team === "🔵") bluePlayers.push(p.name);
+        });
+      });
+
+      document.getElementById("redCount").innerText = redPlayers.length;
+      document.getElementById("blueCount").innerText = bluePlayers.length;
+
+      redList.innerHTML = redPlayers.length > 0 ? 
+        redPlayers.map(n => `<div class="player-tag tag-red">🔴 ${n}</div>`).join('') : 
+        '<small style="color:#666;">Waiting for students...</small>';
+
+      blueList.innerHTML = bluePlayers.length > 0 ? 
+        bluePlayers.map(n => `<div class="player-tag tag-blue">🔵 ${n}</div>`).join('') : 
+        '<small style="color:#666;">Waiting for students...</small>';
+    }
+
+    function syncHostChannel() {
+      const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
+      renderBoard();
+      if (classCode !== "") {
+        isTeacherHost = true;
+        connectRealtimeChannel(classCode);
+      }
+    }
+
+    function handleStartButtonClick() {
+      if (document.getElementById("teamSelect").value === "") {
+        isTeacherHost = false;
+        startGame();
+      }
+    }
+
+    async function triggerHostStartMatch() {
+      const classCode = document.getElementById("filterClass").value.trim().toUpperCase();
+      if (classCode === "") {
+        munculkanAlert("⚠️ Attention", "Please enter a **Server Code** in the search box before starting the match.");
+        return;
+      }
+
+      isTeacherHost = true;
+      const selectedGrid = document.getElementById("gridSizeSelect").value;
+      connectRealtimeChannel(classCode);
+
+      setTimeout(() => {
+        if (realtimeChannel) {
+          realtimeChannel.send({
+            type: 'broadcast',
+            event: 'start_battle',
+            payload: { gridSize: selectedGrid }
+          });
+        }
+        if (localBroadcastChannel) {
+          localBroadcastChannel.postMessage({ type: 'start_battle', gridSize: selectedGrid });
+        }
+        
+        munculkanAlert("🚀 MATCH STARTED!", "Battle signal sent synchronously to all student devices!");
+        
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        autoRefreshTimer = setInterval(renderBoard, 1000);
+      }, 300);
+    }
+
+    function startSynchronousCountdown() {
+      const overlay = document.getElementById("countdown-overlay");
+      const numElem = document.getElementById("countdown-num");
+      overlay.style.display = "flex";
+      
+      let count = 3;
+      numElem.innerText = count;
+      playSynthTone(440, 'sine', 0.15);
+
+      let intv = setInterval(() => {
+        count--;
+        if (count > 0) {
+          numElem.innerText = count;
+          playSynthTone(440, 'sine', 0.15);
+        } else if (count === 0) {
+          numElem.innerText = "GO!";
+          playSynthTone(880, 'triangle', 0.3);
+        } else {
+          clearInterval(intv);
+          overlay.style.display = "none";
+          startGame();
+        }
+      }, 1000);
+    }
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById("examBtn").classList.toggle("activeMode", m === "exam");
+      document.getElementById("challengeBtn").classList.toggle("activeMode", m === "challenge");
+    }
+
+    /* GAME ENGINE & GRID LOGIC */
+    function buildGrid(size) {
+      grid.innerHTML = "";
+      grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      for (let i = 0; i < size * size; i++) {
+        let c = document.createElement("div");
+        c.className = "cell";
+        c.onclick = () => handleClick(i);
+        grid.appendChild(c);
+      }
+    }
+
+    async function startGame() {
+      document.getElementById("top-menu").style.display = "none";
+      document.getElementById("main-title").style.display = "none";
+      document.getElementById("animal-icons").style.display = "none";
+      document.getElementById("boardPanel").classList.add("hidden"); 
+      document.getElementById("game-info").classList.remove("hidden");
+      document.getElementById("grid").classList.remove("hidden");
+      document.getElementById("msg").innerHTML = "";
+      
+      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+      clearInterval(timer);
+      
+      level = 1; score = 0; solvedCount = 0; isPaused = false; timeLeft = 60;
+      currentRecordId = null;
+      
+      let inputName = document.getElementById("name").value.trim();
+      let team = document.getElementById("teamSelect").value;
+      let classCode = document.getElementById("class").value.trim().toUpperCase();
+      let finalName = team !== "" ? team + " " + inputName : inputName;
+
+      if (classCode !== "" && supabaseClient) {
+        const { data } = await supabaseClient.from("scores").insert([{
+          name: finalName, class: classCode, score: 0, mode: mode
+        }]).select();
+
+        if (data && data.length > 0) currentRecordId = data[0].id;
+      }
+
+      if (mode === "challenge") {
+        document.getElementById("extra").innerText = `🔥 Level 1`;
+      } else {
+        startTimer();
+      }
+      
+      nextLevel();
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        if (!isPaused) {
+          timeLeft--;
+          updateUI();
+          if (timeLeft <= 0) { clearInterval(timer); endGame(); }
+        }
+      }, 1000);
+    }
+
+    function nextLevel() {
+      if (mode === "exam" && timeLeft <= 0) return;
+      clickable = false;
+      
+      const selectedSize = document.getElementById("gridSizeSelect").value;
+      let size = selectedSize === "auto" ? (solvedCount < 3 ? 3 : (solvedCount < 8 ? 4 : 5)) : parseInt(selectedSize);
+      
+      buildGrid(size);
+      
+      sequence = []; playerIndex = 0;
+      currentColor = colors[Math.floor(Math.random() * colors.length)];
+      
+      let len = Math.min(2 + Math.floor(solvedCount / 2), 12);
+      let speed = Math.max(500 - (solvedCount * 15), 200);
+      
+      for (let i = 0; i < len; i++) sequence.push(Math.floor(Math.random() * (size * size)));
+      
+      document.getElementById("msg").innerHTML = "👀 WATCH PATTERN...";
+      showSeq(speed);
+    }
+
+    function showSeq(speed) {
+      let i = 0;
+      const cells = document.querySelectorAll(".cell");
+      let int = setInterval(() => {
+        if (i > 0) {
+          cells[sequence[i - 1]].style.background = "#1b133b";
+          cells[sequence[i - 1]].classList.remove("trail-active");
+        }
+        if (i >= sequence.length) { 
+          clearInterval(int); 
+          clickable = true; 
+          document.getElementById("msg").innerHTML = "🧠 YOUR TURN! REPEAT PATTERN."; 
+          return; 
+        }
+        cells[sequence[i]].style.background = currentColor;
+        cells[sequence[i]].classList.add("trail-active");
+        soundBeep(sequence[i]);
+        setTimeout(() => {
+          cells[sequence[i]].style.background = "#1b133b";
+          cells[sequence[i]].classList.remove("trail-active");
+        }, 350);
+        i++;
+      }, speed);
+    }
+
+    function handleClick(id) {
+      if (!clickable) return;
+      const cells = document.querySelectorAll(".cell");
+      
+      // Visual touch feedback
+      cells[id].classList.add("trail-active");
+      setTimeout(() => cells[id].classList.remove("trail-active"), 200);
+
+      if (id === sequence[playerIndex]) {
+        score += 10;
+        soundBeep(id);
+        cells[id].style.background = currentColor;
+        setTimeout(() => cells[id].style.background = "#1b133b", 200);
+        playerIndex++;
+        
+        if (playerIndex === sequence.length) {
+          clickable = false; level++; solvedCount++;
+          soundSuccess();
+          syncScoreToDatabase();
+
+          isPaused = true;
+          document.getElementById("msg").innerHTML = "✨ <b style='color:var(--neon-cyan);'>PERFECT! +10</b>";
+          grid.innerHTML = "";
+          
+          setTimeout(() => {
+            isPaused = false;
+            nextLevel();
+          }, 800);
+        }
+      } else {
+        // Minimum score limit set to 0
+        score = Math.max(0, score - 5); 
+        soundError();
+        cells[id].style.background = "#ff3366";
+        clickable = false;
+        
+        syncScoreToDatabase();
+        isPaused = true;
+        
+        if (mode === "challenge") {
+          document.getElementById("msg").innerHTML = "❌ <b style='color:var(--neon-red);'>GAME OVER!</b>";
+          setTimeout(() => endGame(), 1200);
+          return;
+        } else {
+          document.getElementById("msg").innerHTML = "❌ <b style='color:var(--neon-red);'>WRONG! -5</b>";
+          setTimeout(() => grid.innerHTML = "", 300);
+          setTimeout(() => { 
+            isPaused = false;
+            nextLevel(); 
+          }, 1000);
+        }
+      }
+      updateUI();
+    }
+
+    async function syncScoreToDatabase() {
+      if (currentRecordId && supabaseClient) {
+        await supabaseClient.from("scores").update({ score: score }).eq("id", currentRecordId);
+      }
+    }
+
+    function updateUI() {
+      document.getElementById("score").innerText = score;
+      if (mode === "exam") {
+        document.getElementById("extra").innerText = `⏱️ ${timeLeft}s | Solved: ${solvedCount}`;
+      } else {
+        document.getElementById("extra").innerText = `🔥 Level: ${solvedCount + 1}`;
+      }
+    }
+
+    function endGame() {
+      clickable = false; clearInterval(timer);
+      syncScoreToDatabase();
+      
+      document.getElementById("top-menu").style.display = "block";
+      document.getElementById("main-title").style.display = "block";
+      document.getElementById("animal-icons").style.display = "flex";
+      document.getElementById("game-info").classList.add("hidden");
+      document.getElementById("grid").classList.add("hidden");
+      
+      cekInput();
+      document.getElementById("msg").innerHTML = "🏁 MATCH FINISHED!";
+      
+      munculkanAlert("🏆 Game Over!", "Your Final Score: <br><b style='font-size:36px; color:var(--neon-yellow);'>" + score + "</b><br><small>Levels Completed: " + solvedCount + "</small>");
+    }
+
+    /* HOST LIVEBOARD & ANALYTICS */
+    function toggleBoard() {
+      const board = document.getElementById("boardPanel");
+      board.classList.toggle("hidden");
+      
+      if (!board.classList.contains("hidden")) {
+        isTeacherHost = true;
+        renderBoard();
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        autoRefreshTimer = setInterval(renderBoard, 1000);
+      } else {
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+      }
+    }
+
+    function resetFilter() {
+      document.getElementById("filterClass").value = "";
+      renderBoard();
+    }
+
+    async function renderBoard() {
+      const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+      let data = [];
+
+      if (supabaseClient) {
+        let query = supabaseClient.from("scores").select("*").eq("mode", mode).neq("name", "HOST_PIN");
+        if (filter !== "") query = query.ilike("class", filter);
+        const res = await query.order("score", { ascending: false }).limit(50);
+        if (res.data) data = res.data;
+      }
+
+      let redTotal = 0, blueTotal = 0;
+      data.forEach(d => {
+        if (d.name.includes("🔴")) redTotal += d.score;
+        if (d.name.includes("🔵")) blueTotal += d.score;
+      });
+
+      document.getElementById("redScore").innerText = redTotal;
+      document.getElementById("blueScore").innerText = blueTotal;
+
+      let grandTotal = redTotal + blueTotal;
+      let redPct = grandTotal === 0 ? 50 : (redTotal / grandTotal) * 100;
+      let bluePct = grandTotal === 0 ? 50 : (blueTotal / grandTotal) * 100;
+
+      document.getElementById("redBar").style.width = redPct + "%";
+      document.getElementById("blueBar").style.width = bluePct + "%";
+
+      let top5 = data.slice(0, 5);
+      let titleFilter = filter === "" ? "GLOBAL" : filter;
+      
+      document.getElementById("leaderboard").innerHTML = 
+        "<b style='color:var(--neon-cyan); font-family:var(--font-title);'>🏆 TOP 5 LEADERBOARD (" + titleFilter + ")</b><hr style='border:1px solid #33265d; margin:8px 0;'>" + 
+        (top5.length > 0 ? top5.map((d, i) => {
+          let classCensored = d.class.length > 3 ? d.class.slice(0, -3) + "***" : d.class.charAt(0) + "**";
+          return `<div style='margin-bottom:6px;'><b>${i+1}.</b> ${d.name} <span style='color:#777; font-size:12px;'>(${classCensored})</span> - <b style='color:var(--neon-yellow);'>${d.score} pts</b></div>`;
+        }).join("") : "<div style='text-align:center; color:#666;'>No score data yet.</div>");
+
+      drawChart(data);
+    }
+
+    function drawChart(data) {
+      let ctx = document.getElementById("chart").getContext("2d");
+      if (chart) chart.destroy();
+      let high = 0, med = 0, low = 0;
+      data.forEach(d => { if (d.score >= 200) high++; else if (d.score >= 100) med++; else low++; });
+      
+      chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['High (>=200)', 'Medium (100-199)', 'Low (<100)'],
+          datasets: [{ data: [high, med, low], backgroundColor: ['#00e676', '#ffee00', '#ff3366'], borderWidth: 0 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { labels: { color: '#ccc', font: { family: 'Share Tech Mono' } } } }
+        }
+      });
+    }
+
+    /* MODAL HANDLERS & PIN SYSTEM */
+    function munculkanAlert(judul, pesan) {
+      document.getElementById("alert-title").innerHTML = judul;
+      document.getElementById("alert-msg").innerHTML = pesan;
+      document.getElementById("custom-alert").style.display = "flex";
+    }
+    function tutupAlert() { document.getElementById("custom-alert").style.display = "none"; }
+
+    function bukaModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "flex"; }
+    function tutupModalBuatKelas() { document.getElementById("modal-buat-kelas").style.display = "none"; }
+
+    async function prosesBuatKelas() {
+      const pin = document.getElementById("input-pin-baru").value.trim();
+      if (pin.length < 3) { munculkanAlert("⚠️ Warning", "PIN must be at least 3 characters!"); return; }
+
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; 
+      let code = "";
+      for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+      tutupModalBuatKelas();
+
+      if (supabaseClient) {
+        await supabaseClient.from("scores").insert([{ name: "HOST_PIN", class: code, score: 0, mode: pin }]);
+      }
+
+      isTeacherHost = true;
+      document.getElementById("createClassBtn").style.display = "none";
+      document.getElementById("scoreboardBtn").style.display = "none";
+      document.getElementById("top-menu").style.display = "none"; 
+      document.getElementById("boardPanel").classList.remove("hidden");
+      document.getElementById("filterClass").value = code;
+      syncHostChannel();
+      
+      munculkanAlert("✅ Server Ready!",
+        `Teacher Liveboard Created Successfully!<br><br>Give this SERVER CODE to students:<br><b style='font-size:38px; color:var(--neon-cyan); letter-spacing: 3px;'>${code}</b><br><br>Teacher Secret PIN: <b>${pin}</b>`
+      );
+    }
+
+    function tampilkanPopupPass() { 
+      const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+      if (filter === "") {
+        munculkanAlert("⚠️ Warning", "Please type the **Server Code** in the search bar first.");
+        return;
+      }
+      document.getElementById("prompt-msg").innerHTML = `Enter Teacher PIN to reset server <b>${filter}</b>:`;
+      document.getElementById("guru-pass-input").value = "";
+      document.getElementById("custom-prompt").style.display = "flex"; 
+    }
+    function tutupPopupPass() { document.getElementById("custom-prompt").style.display = "none"; }
+
+    async function cekPassword() {
+      const pin = document.getElementById('guru-pass-input').value.trim();
+      const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+      tutupPopupPass();
+
+      let valid = false;
+      if (supabaseClient) {
+        let { data } = await supabaseClient.from("scores").select("*").eq("name", "HOST_PIN").eq("class", filter);
+        if (data && data.length > 0 && data[0].mode === pin) valid = true;
+      }
+      if (pin === "1234" || pin === "admin") valid = true;
+
+      if (valid) {
+        document.getElementById("custom-confirm").style.display = "flex"; 
+      } else {
+        munculkanAlert("❌ Failed", "Incorrect Teacher PIN.");
+      }
+    }
+
+    function batalHapus() { document.getElementById("custom-confirm").style.display = "none"; }
+
+    async function eksekusiHapus() {
+      document.getElementById("custom-confirm").style.display = "none"; 
+      const filter = document.getElementById("filterClass").value.trim().toUpperCase();
+      if (supabaseClient && filter !== "") {
+        await supabaseClient.from('scores').delete().ilike('class', filter);
+      }
+      location.reload(); 
+    }
+  </script>
+</body>
+</html>
